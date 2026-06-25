@@ -1,145 +1,412 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мебельный цех — Отдел продаж</title>
-    <script src="https://unpkg.com/pocketbase@0.21.5/dist/pocketbase.umd.js"></script>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div class="container">
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-        <!-- ============================================ -->
-        <!-- АВТОРИЗАЦИЯ -->
-        <!-- ============================================ -->
-        <div id="authScreen">
-            <div class="card">
-                <h1>🔐 Вход в систему</h1>
-                <div class="form-group">
-                    <label>Email:</label>
-                    <input type="email" id="loginEmail" placeholder="ivan@example.com">
-                </div>
-                <div class="form-group">
-                    <label>Пароль:</label>
-                    <input type="password" id="loginPassword" placeholder="******">
-                </div>
-                <button id="loginBtn" class="btn btn-primary" style="width:100%;">Войти</button>
-                <div id="loginMessage" class="message"></div>
-            </div>
-        </div>
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f0f2f5;
+    padding: 20px;
+}
 
-        <!-- ============================================ -->
-        <!-- ОСНОВНОЙ ИНТЕРФЕЙС (после входа) -->
-        <!-- ============================================ -->
-        <div id="mainScreen" style="display:none;">
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+}
 
-            <!-- Шапка -->
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h1>📋 Мебельный цех</h1>
-                <div>
-                    <span id="userNameDisplay" style="font-weight:600; margin-right:16px;"></span>
-                    <button id="logoutBtn" class="btn btn-danger" style="padding:8px 16px;">Выйти</button>
-                </div>
-            </div>
+h1 {
+    color: #1a1a2e;
+    margin-bottom: 30px;
+    font-size: 28px;
+}
 
-            <!-- Вкладки -->
-            <div class="tabs">
-                <button class="tab-btn active" data-tab="myOrders">📦 Мои заказы</button>
-                <button class="tab-btn" data-tab="newOrder">➕ Новый заказ</button>
-            </div>
+.card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
 
-            <!-- ============================================ -->
-            <!-- ВКЛАДКА: МОИ ЗАКАЗЫ -->
-            <!-- ============================================ -->
-            <div id="tabMyOrders" class="tab-content active">
-                <div class="card">
-                    <h2>Мои заказы</h2>
-                    <div id="ordersList">
-                        <p class="empty-text">Загрузка...</p>
-                    </div>
-                </div>
-            </div>
+.card h2 {
+    font-size: 18px;
+    color: #1a1a2e;
+    margin-bottom: 16px;
+    border-bottom: 2px solid #f0f2f5;
+    padding-bottom: 12px;
+}
 
-            <!-- ============================================ -->
-            <!-- ВКЛАДКА: НОВЫЙ ЗАКАЗ / РЕДАКТИРОВАНИЕ -->
-            <!-- ============================================ -->
-            <div id="tabNewOrder" class="tab-content" style="display:none;">
-                
-                <!-- Информация о заказе -->
-                <div class="card">
-                    <h2>➕ Новый заказ</h2>
-                    <div class="form-group">
-                        <label>ФИО клиента:</label>
-                        <input type="text" id="clientName" placeholder="Введите ФИО клиента">
-                    </div>
-                    <div class="form-group">
-                        <label>Дата сдачи:</label>
-                        <input type="date" id="deliveryDate">
-                    </div>
-                    <div class="form-group">
-                        <label>Комментарий к заказу:</label>
-                        <textarea id="orderComment" rows="4" placeholder="Дополнительная информация..."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label style="display:flex; align-items:center; cursor:pointer;">
-                            <input type="checkbox" id="needsDevelopment" style="width:18px;height:18px;margin-right:10px;cursor:pointer;">
-                            Требуется разработка (конструктор)
-                        </label>
-                    </div>
-                </div>
+.form-group {
+    margin-bottom: 16px;
+    position: relative;
+}
 
-                <!-- Добавление позиций -->
-                <div class="card">
-                    <h2>Добавить позицию</h2>
-                    <div class="form-group" style="position:relative;">
-                        <label>Мебель:</label>
-                        <input type="text" id="furnitureSearch" placeholder="Начните вводить название мебели...">
-                        <div id="suggestions" class="suggestions"></div>
-                        <input type="text" id="furnitureManual" placeholder="Введите название мебели вручную..." style="display:none; margin-top:8px;">
-                    </div>
-                    <div class="form-group">
-                        <label>Ткань:</label>
-                        <input type="text" id="fabric" placeholder="Ткань">
-                    </div>
-                    <div class="form-group">
-                        <label>Цвет опор:</label>
-                        <input type="text" id="colorOpor" placeholder="Цвет опор">
-                    </div>
-                    <div class="form-group">
-                        <label>Отделка:</label>
-                        <input type="text" id="finish" placeholder="Отделка">
-                    </div>
-                    <div class="form-group">
-                        <label>Количество:</label>
-                        <input type="number" id="quantity" value="1" min="1">
-                    </div>
-                    <div class="form-group">
-                        <label>Комплектность:</label>
-                        <input type="text" id="komplektnost" placeholder="Комплектность (например: с ящиком, с полкой...)">
-                    </div>
-                    <div class="form-group">
-                        <label>Количество подушек:</label>
-                        <input type="text" id="podushki" placeholder="Например: 2 шт, в комплекте, без подушек...">
-                    </div>
-                    <button id="addItemBtn" class="btn btn-secondary">➕ Добавить позицию</button>
-                </div>
+.form-group label {
+    display: block;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 6px;
+    font-size: 14px;
+}
 
-                <!-- Список позиций -->
-                <div class="card">
-                    <h2>Позиции в заказе</h2>
-                    <div id="itemsList">
-                        <p class="empty-text">Нет добавленных позиций</p>
-                    </div>
-                </div>
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+    font-family: inherit;
+}
 
-                <button id="createOrderBtn" class="btn btn-primary">✅ Создать заказ</button>
-                <div id="resultMessage" class="message"></div>
-            </div>
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #4a90d9;
+    box-shadow: 0 0 0 3px rgba(74,144,217,0.1);
+}
 
-        </div>
-    </div>
+.form-group textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    resize: vertical;
+    min-height: 100px;
+    max-height: 250px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: #fafafa;
+    line-height: 1.5;
+}
 
-    <script src="script.js"></script>
-</body>
-</html>
+.form-group textarea:focus {
+    outline: none;
+    border-color: #4a90d9;
+    box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.15);
+    background: white;
+}
+
+.form-group textarea::placeholder {
+    color: #aaa;
+    font-style: italic;
+}
+
+/* =============================================
+   Кнопки
+   ============================================= */
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-primary {
+    background: #4a90d9;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #357abd;
+}
+
+.btn-secondary {
+    background: #e9ecef;
+    color: #333;
+}
+
+.btn-secondary:hover {
+    background: #dde1e6;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+    padding: 6px 12px;
+    font-size: 13px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+}
+
+/* =============================================
+   Подсказки при поиске
+   ============================================= */
+
+.suggestions {
+    position: absolute;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    width: 100%;
+    z-index: 100;
+    display: none;
+    top: 100%;
+    left: 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.suggestions.show {
+    display: block;
+}
+
+.suggestion-item {
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f2f5;
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-item:hover {
+    background: #f0f7ff;
+}
+
+.suggestion-item .suggestion-title {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.suggestion-item .suggestion-desc {
+    font-size: 12px;
+    color: #666;
+}
+
+/* =============================================
+   Список позиций в заказе
+   ============================================= */
+
+#itemsList .item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f2f5;
+}
+
+#itemsList .item-row:last-child {
+    border-bottom: none;
+}
+
+#itemsList .item-info {
+    flex: 1;
+    padding-right: 12px;
+}
+
+#itemsList .item-name {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+#itemsList .item-detail {
+    font-size: 13px;
+    color: #666;
+    margin-top: 2px;
+}
+
+.empty-text {
+    color: #999;
+    text-align: center;
+    padding: 20px;
+}
+
+/* =============================================
+   Сообщения
+   ============================================= */
+
+.message {
+    padding: 16px;
+    border-radius: 8px;
+    margin-top: 16px;
+    display: none;
+    white-space: pre-wrap;
+}
+
+.message.success {
+    display: block;
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.message.error {
+    display: block;
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.message.info {
+    display: block;
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+/* =============================================
+   Кнопка "Создать заказ"
+   ============================================= */
+
+#createOrderBtn {
+    display: block;
+    width: 100%;
+    padding: 16px 24px;
+    font-size: 18px;
+    font-weight: 700;
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    margin-top: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+#createOrderBtn:hover {
+    background: #218838;
+}
+
+#createOrderBtn:active {
+    transform: scale(0.98);
+}
+
+/* =============================================
+   Вкладки
+   ============================================= */
+
+.tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 4px;
+}
+
+.tab-btn {
+    padding: 10px 20px;
+    border: none;
+    background: transparent;
+    font-size: 15px;
+    font-weight: 600;
+    color: #666;
+    cursor: pointer;
+    border-radius: 8px 8px 0 0;
+    transition: all 0.2s;
+}
+
+.tab-btn:hover {
+    background: #f0f2f5;
+    color: #333;
+}
+
+.tab-btn.active {
+    color: #4a90d9;
+    background: #e8f0fe;
+    border-bottom: 3px solid #4a90d9;
+}
+
+.tab-content {
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* =============================================
+   Заказы в списке (карточки)
+   ============================================= */
+
+.order-card {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    border-left: 4px solid #4a90d9;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+.order-card:hover {
+    background: #eef2f7;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.order-card .order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.order-card .order-number {
+    font-weight: 700;
+    font-size: 16px;
+    color: #1a1a2e;
+}
+
+.order-card .order-status {
+    font-size: 12px;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.order-card .order-client {
+    font-size: 14px;
+    color: #333;
+    font-weight: 500;
+}
+
+.order-card .order-details {
+    font-size: 13px;
+    color: #555;
+    margin-top: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+}
+
+.order-card .order-details span {
+    background: #f0f2f5;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.order-card .order-date {
+    font-size: 12px;
+    color: #888;
+    margin-top: 6px;
+}
+
+/* =============================================
+   Кнопка входа
+   ============================================= */
+
+#loginBtn {
+    width: 100%;
+    margin-top: 8px;
+}
