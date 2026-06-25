@@ -163,7 +163,10 @@ async function loadMyOrders() {
                         ${order.kommentarii ? ` | 💬 ${order.kommentarii}` : ''}
                     </div>
                     <div class="order-date">📅 Создан: ${new Date(order.created).toLocaleString()}</div>
-                    <button class="btn btn-secondary" style="margin-top:8px; padding:4px 16px; font-size:13px;" data-id="${order.id}">✏️ Редактировать</button>
+                    <div style="display:flex; gap:8px; margin-top:8px;">
+                        <button class="btn btn-secondary" style="padding:4px 16px; font-size:13px;" data-id="${order.id}">✏️ Редактировать</button>
+                        <button class="btn btn-danger" style="padding:4px 12px; font-size:13px;" data-id="${order.id}">🗑️ Удалить</button>
+                    </div>
                 </div>
             `;
         }).join('');
@@ -186,6 +189,16 @@ async function loadMyOrders() {
             });
         });
 
+        document.querySelectorAll('.order-card .btn-danger').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const orderId = this.dataset.id;
+                if (confirm('Вы уверены, что хотите удалить этот заказ?')) {
+                    deleteOrder(orderId);
+                }
+            });
+        });
+
         document.querySelectorAll('.order-card').forEach(card => {
             card.addEventListener('click', function() {
                 const orderId = this.dataset.id;
@@ -196,6 +209,27 @@ async function loadMyOrders() {
     } catch (err) {
         console.error('Ошибка загрузки заказов:', err);
         container.innerHTML = '<p class="empty-text">Ошибка загрузки заказов</p>';
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 🗑️ УДАЛЕНИЕ ЗАКАЗА
+// ═══════════════════════════════════════════════════════════════════
+
+async function deleteOrder(orderId) {
+    try {
+        const items = await pb.collection('order_items').getList(1, 100, {
+            filter: `order_id = "${orderId}"`,
+        });
+        for (const item of items.items) {
+            await pb.collection('order_items').delete(item.id);
+        }
+        await pb.collection('orders').delete(orderId);
+        showMessage('✅ Заказ успешно удалён!', 'success');
+        loadMyOrders();
+    } catch (err) {
+        console.error('Ошибка при удалении заказа:', err);
+        showMessage('❌ Ошибка при удалении заказа: ' + (err.message || 'Неизвестная ошибка'), 'error');
     }
 }
 
@@ -512,7 +546,7 @@ function editItem(index) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// ✅ СОЗДАНИЕ / ОБНОВЛЕНИЕ ЗАКАЗА
+// ✅ СОЗДАНИЕ / ОБНОВЛЕНИЕ ЗАКАЗА (с загрузкой файла)
 // ═══════════════════════════════════════════════════════════════════
 
 document.getElementById('createOrderBtn').addEventListener('click', async function() {
@@ -520,6 +554,8 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
     const deliveryDate = document.getElementById('deliveryDate').value;
     const comment = document.getElementById('orderComment').value.trim();
     const needsDevelopment = document.getElementById('needsDevelopment').checked;
+    const fileInput = document.getElementById('orderFile');
+    const file = fileInput.files[0];
 
     if (!clientName) {
         showMessage('Введите ФИО клиента!', 'error');
@@ -536,13 +572,24 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
 
         if (state.currentOrderId) {
             // ✏️ РЕДАКТИРОВАНИЕ
-            await pb.collection('orders').update(state.currentOrderId, {
+            const updateData = {
                 klient: clientName,
                 data_sdai: deliveryDate || null,
                 kommentarii: comment || '',
                 njna_razrabotka: needsDevelopment,
                 stats: 'новый',
-            });
+            };
+
+            // Если файл загружен, добавляем его
+            if (file) {
+                const formData = new FormData();
+                formData.append('файл', file);
+                const uploaded = await pb.collection('orders').update(state.currentOrderId, formData);
+                // Обновляем остальные поля
+                await pb.collection('orders').update(state.currentOrderId, updateData);
+            } else {
+                await pb.collection('orders').update(state.currentOrderId, updateData);
+            }
 
             const oldItems = await pb.collection('order_items').getList(1, 100, {
                 filter: `order_id = "${state.currentOrderId}"`,
@@ -585,16 +632,21 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
                 }
             }
 
-            const order = await pb.collection('orders').create({
-                nomer_partii: nextOrderNumber,
-                menedzer: state.currentUser.record.name || state.currentUser.record.email,
-                menedzer_id: userId,
-                klient: clientName,
-                njna_razrabotka: needsDevelopment,
-                kommentarii: comment || '',
-                data_sdai: deliveryDate || null,
-                stats: 'новый',
-            });
+            // Создаём заказ через FormData, чтобы прикрепить файл
+            const formData = new FormData();
+            formData.append('nomer_partii', nextOrderNumber);
+            formData.append('menedzer', state.currentUser.record.name || state.currentUser.record.email);
+            formData.append('menedzer_id', userId);
+            formData.append('klient', clientName);
+            formData.append('njna_razrabotka', needsDevelopment);
+            formData.append('kommentarii', comment || '');
+            formData.append('data_sdai', deliveryDate || null);
+            formData.append('stats', 'новый');
+            if (file) {
+                formData.append('файл', file);
+            }
+
+            const order = await pb.collection('orders').create(formData);
 
             for (let i = 0; i < state.items.length; i++) {
                 const item = state.items[i];
@@ -615,6 +667,8 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
             clearOrderForm();
             document.querySelector('#tabNewOrder h2').textContent = '➕ Новый заказ';
             document.getElementById('createOrderBtn').textContent = '✅ Создать заказ';
+            // Очищаем поле файла
+            fileInput.value = '';
             loadMyOrders();
         }
 
