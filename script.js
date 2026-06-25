@@ -2,7 +2,7 @@
 // 📦 ПОДКЛЮЧЕНИЕ К POCKETBASE
 // ═══════════════════════════════════════════════════════════════════
 
-const pb = new PocketBase('http://146.185.235.22:8090');
+const pb = new PocketBase('https://creatica.duckdns.org');
 pb.autoCancellation(false);
 
 // ═══════════════════════════════════════════════════════════════════
