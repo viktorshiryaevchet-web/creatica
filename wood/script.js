@@ -39,7 +39,6 @@ async function loadUserData() {
     try {
         state.currentUser = await pb.collection('users').authRefresh();
         userNameDisplay.textContent = state.currentUser.record?.name || state.currentUser.record?.email;
-        // Загружаем только активную вкладку при входе
         const activeTab = document.querySelector('.tab-btn.active');
         if (activeTab) {
             const tab = activeTab.dataset.tab;
@@ -108,7 +107,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         this.classList.add('active');
         document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
-        document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`).style.display = 'block');
+        document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`).style.display = 'block';
         
         if (tab === 'all') {
             // Все позиции загружаются по кнопке
@@ -310,7 +309,6 @@ async function changeOrderStatus(orderId, newStatus) {
         
         showMessage(`✅ Статус заказа изменён на "${newStatus}"`, 'success');
         
-        // Обновляем активную вкладку
         const activeTab = document.querySelector('.tab-btn.active');
         if (activeTab) {
             const tab = activeTab.dataset.tab;
