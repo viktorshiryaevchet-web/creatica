@@ -168,9 +168,7 @@ if (furnitureFilter) {
 
 if (resetFiltersBtn) {
     resetFiltersBtn.addEventListener('click', function() {
-        if (searchInput) searchInput.value = '';
         if (furnitureFilter) furnitureFilter.value = '';
-        state.searchQuery = '';
         state.furnitureFilter = '';
         const activeTab = document.querySelector('.tab-btn.active');
         if (activeTab) loadTab(activeTab.dataset.tab);
@@ -284,15 +282,6 @@ async function loadTab(tab) {
         if (state.furnitureFilter) {
             filteredItems = filteredItems.filter(function(item) {
                 return item.name === state.furnitureFilter;
-            });
-        }
-
-        // Поиск по номеру или клиенту
-        if (state.searchQuery) {
-            const lowerQuery = state.searchQuery;
-            filteredItems = filteredItems.filter(function(item) {
-                return item.name.toLowerCase().includes(lowerQuery) || 
-                       String(item.orderNumber).includes(lowerQuery);
             });
         }
 
