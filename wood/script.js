@@ -1,8 +1,10 @@
 // ═══════════════════════════════════════════════════════════════════
-// 📦 ПОДКЛЮЧЕНИЕ К POCKETBASE
+// 📦 ПОДКЛЮЧЕНИЕ К POCKETBASE (Столярный цех)
 // ═══════════════════════════════════════════════════════════════════
 
-const pb = new PocketBase('https://creatica.duckdns.org');
+// Используем уникальное хранилище для столярного цеха
+const authStore = new LocalAuthStore('creatica_wood_auth');
+const pb = new PocketBase('https://creatica.duckdns.org', authStore);
 pb.autoCancellation(false);
 
 // ═══════════════════════════════════════════════════════════════════
