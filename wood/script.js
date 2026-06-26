@@ -105,9 +105,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`).style.display = 'block';
         
         if (tab === 'all') {
-            document.getElementById('allItemsButtonContainer').style.display = 'block';
+            // Вкладка "Все позиции" — загружаем по кнопке
         } else {
-            document.getElementById('allItemsButtonContainer').style.display = 'none';
             loadTab(tab);
         }
     });
@@ -121,7 +120,7 @@ async function loadAllTabs() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 🔍 ПОИСК И ФИЛЬТРЫ (возвращаем как было)
+// 🔍 ПОИСК И ФИЛЬТРЫ
 // ═══════════════════════════════════════════════════════════════════
 
 const searchInput = document.getElementById('searchInput');
@@ -303,7 +302,7 @@ async function renderOrderCard(order) {
     ];
 
     let statusSelectHtml = `
-        <select class="status-select" data-id="${order.id}" style="padding:6px 12px; border-radius:8px; border:1px solid #ddd; font-size:13px; background:white; cursor:pointer;">
+        <select class="status-select" data-id="${order.id}">
             <option value="">📌 Сменить статус...</option>
     `;
     statusOptions.forEach(opt => {
@@ -340,7 +339,7 @@ async function renderOrderCard(order) {
                     </div>
                 `).join('')}
             </div>
-            <div class="order-actions" style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; align-items:center;">
+            <div class="order-actions">
                 ${statusSelectHtml}
             </div>
             <div class="order-date" style="margin-top:4px;">
@@ -376,7 +375,7 @@ async function changeOrderStatus(orderId, newStatus) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 📋 ВСЕ ПОЗИЦИИ (НОВАЯ ВКЛАДКА)
+// 📋 ВСЕ ПОЗИЦИИ (ВКЛАДКА)
 // ═══════════════════════════════════════════════════════════════════
 
 document.getElementById('loadAllItemsBtn').addEventListener('click', async function() {
