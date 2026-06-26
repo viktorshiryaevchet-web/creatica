@@ -126,7 +126,6 @@ async function loadTab(tab) {
     container.innerHTML = '<p class="empty-text">Загрузка...</p>';
 
     try {
-        // 1. Получаем все заказы
         const orders = await pb.collection('orders').getList(1, 200, {
             sort: '+nomer_partii',
             expand: 'menedzer_id',
@@ -137,7 +136,6 @@ async function loadTab(tab) {
             return;
         }
 
-        // 2. Собираем все позиции из всех заказов
         let allItems = [];
 
         for (const order of orders.items) {
@@ -146,13 +144,11 @@ async function loadTab(tab) {
                 sort: 'nomer_pozicii',
             });
 
-            // Фильтруем подушки
             const filteredItems = items.items.filter(function(item) {
                 const name = (item.mebel || '').toLowerCase();
                 return !name.includes('подушк');
             });
 
-            // Разворачиваем количество и добавляем номер позиции внутри заказа
             let positionCounter = 0;
             filteredItems.forEach(function(item) {
                 const count = item.kolichestvo || 1;
@@ -181,7 +177,6 @@ async function loadTab(tab) {
             return;
         }
 
-        // 3. Фильтруем по вкладке
         let filteredItems = [];
         if (tab === 'all') {
             filteredItems = allItems;
@@ -199,7 +194,6 @@ async function loadTab(tab) {
             });
         }
 
-        // 4. Применяем фильтр по названию (если есть)
         if (state.filterText && tab === 'all') {
             const lowerFilter = state.filterText.toLowerCase();
             filteredItems = filteredItems.filter(function(item) {
@@ -212,7 +206,6 @@ async function loadTab(tab) {
             return;
         }
 
-        // 5. Выводим список
         const statusMap = {
             'новый': { label: '🆕 Новый', class: 'new' },
             'в_столярке': { label: '🛠 В работе', class: 'active' },
@@ -220,7 +213,6 @@ async function loadTab(tab) {
             'у_конструктора': { label: '↩️ У конструктора', class: 'constructor' },
         };
 
-        // Доступные статусы для смены (без чертеж_готов)
         const statusOptions = [
             { value: 'новый', label: '🆕 Новый' },
             { value: 'у_конструктора', label: '↩️ У конструктора' },
@@ -228,7 +220,6 @@ async function loadTab(tab) {
             { value: 'столярка_готова', label: '✅ Готово' },
         ];
 
-        // Фильтр (только для вкладки "Все позиции")
         let filterHtml = '';
         if (tab === 'all') {
             filterHtml = `
@@ -258,7 +249,6 @@ async function loadTab(tab) {
                 details += 'Отделка: ' + item.finish;
             }
 
-            // Выпадающий список статусов
             let statusSelectHtml = '<select class="status-select" data-order-id="' + item.orderId + '" data-item-id="' + item.id + '">';
             statusOptions.forEach(function(opt) {
                 const selected = opt.value === item.status ? 'selected' : '';
@@ -279,7 +269,6 @@ async function loadTab(tab) {
         html += '</div>';
         container.innerHTML = html;
 
-        // Обработчики для фильтра
         const filterInput = document.getElementById('allFilterInput');
         if (filterInput) {
             filterInput.addEventListener('input', function() {
@@ -288,7 +277,6 @@ async function loadTab(tab) {
             });
         }
 
-        // Обработчики для смены статуса
         const selects = container.querySelectorAll('.status-select');
         selects.forEach(function(select) {
             select.addEventListener('change', function(e) {
@@ -309,7 +297,7 @@ async function loadTab(tab) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 📌 СМЕНА СТАТУСА ПОЗИЦИИ (меняет статус всего заказа)
+// 📌 СМЕНА СТАТУСА ПОЗИЦИИ
 // ═══════════════════════════════════════════════════════════════════
 
 async function changeItemStatus(orderId, itemId, newStatus) {
@@ -321,14 +309,12 @@ async function changeItemStatus(orderId, itemId, newStatus) {
     try {
         console.log('🔄 Меняем статус заказа ' + orderId + ' на "' + newStatus + '"');
         
-        // Меняем статус всего заказа
         await pb.collection('orders').update(orderId, {
             stats: newStatus,
         });
         
         showMessage('✅ Статус заказа изменён на "' + newStatus + '"', 'success');
         
-        // Перезагружаем текущую вкладку
         const activeTab = document.querySelector('.tab-btn.active');
         if (activeTab) {
             loadTab(activeTab.dataset.tab);
