@@ -225,6 +225,12 @@ async function deleteOrder(orderId) {
             filter: 'order_id = "' + orderId + '"',
         });
         for (const item of items.items) {
+            const units = await pb.collection('item_units').getList(1, 100, {
+                filter: 'order_item_id = "' + item.id + '"',
+            });
+            for (const unit of units.items) {
+                await pb.collection('item_units').delete(unit.id);
+            }
             await pb.collection('order_items').delete(item.id);
         }
         await pb.collection('orders').delete(orderId);
@@ -560,7 +566,7 @@ function editItem(index) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// ✅ СОЗДАНИЕ / ОБНОВЛЕНИЕ ЗАКАЗА (с правильной нумерацией партий)
+// ✅ СОЗДАНИЕ / ОБНОВЛЕНИЕ ЗАКАЗА
 // ═══════════════════════════════════════════════════════════════════
 
 document.getElementById('createOrderBtn').addEventListener('click', async function() {
@@ -602,10 +608,17 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
 
             await pb.collection('orders').update(state.currentOrderId, updateData);
 
+            // ⬇️ ПРАВИЛЬНОЕ УДАЛЕНИЕ СТАРЫХ ПОЗИЦИЙ ⬇️
             const oldItems = await pb.collection('order_items').getList(1, 100, {
                 filter: 'order_id = "' + state.currentOrderId + '"',
             });
             for (const item of oldItems.items) {
+                const units = await pb.collection('item_units').getList(1, 100, {
+                    filter: 'order_item_id = "' + item.id + '"',
+                });
+                for (const unit of units.items) {
+                    await pb.collection('item_units').delete(unit.id);
+                }
                 await pb.collection('order_items').delete(item.id);
             }
 
@@ -637,8 +650,6 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
 
         } else {
             // ✅ СОЗДАНИЕ НОВОГО ЗАКАЗА
-
-            // Получаем максимальный номер партии
             const allOrdersByNumber = await pb.collection('orders').getList(1, 1, {
                 sort: '-nomer_partii',
             });
