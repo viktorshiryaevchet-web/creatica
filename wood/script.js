@@ -186,16 +186,16 @@ async function loadTab(tab) {
             filter = '';
     }
 
-    // Поиск по клиенту или номеру
+    // Поиск по клиенту или номеру (упрощённый)
     if (state.searchQuery) {
-        const searchFilter = `(LOWER(klient) ~ "${state.searchQuery}" || LOWER(nomer_partii) ~ "${state.searchQuery}")`;
-        filter = filter ? `(${filter}) && ${searchFilter}` : searchFilter;
+        const searchFilter = `klient ~ "${state.searchQuery}" || nomer_partii ~ "${state.searchQuery}"`;
+        filter = filter ? `(${filter}) && (${searchFilter})` : searchFilter;
     }
 
-    // Фильтр по партии
+    // Фильтр по партии (упрощённый)
     if (state.partyFilter) {
-        const partyFilterStr = `LOWER(nomer_partii) ~ "${state.partyFilter}"`;
-        filter = filter ? `(${filter}) && ${partyFilterStr}` : partyFilterStr;
+        const partyFilterStr = `nomer_partii ~ "${state.partyFilter}"`;
+        filter = filter ? `(${filter}) && (${partyFilterStr})` : partyFilterStr;
     }
 
     try {
@@ -217,15 +217,7 @@ async function loadTab(tab) {
         }
         container.innerHTML = html;
 
-        document.querySelectorAll(`#ordersList${tab.charAt(0).toUpperCase() + tab.slice(1)} .btn-status`).forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                const orderId = this.dataset.id;
-                const status = this.dataset.status;
-                changeOrderStatus(orderId, status);
-            });
-        });
-
+        // Обработчики для смены статуса
         document.querySelectorAll(`#ordersList${tab.charAt(0).toUpperCase() + tab.slice(1)} .status-select`).forEach(select => {
             select.addEventListener('change', function(e) {
                 e.stopPropagation();
@@ -237,9 +229,10 @@ async function loadTab(tab) {
             });
         });
 
+        // Обработчики для раскрытия позиций
         document.querySelectorAll(`#ordersList${tab.charAt(0).toUpperCase() + tab.slice(1)} .order-card`).forEach(card => {
             card.addEventListener('click', function(e) {
-                if (e.target.closest('.btn-status') || e.target.closest('.status-select')) return;
+                if (e.target.closest('.status-select')) return;
                 const id = this.dataset.id;
                 const itemsContainer = document.getElementById(`items-${id}`);
                 if (itemsContainer) {
@@ -269,6 +262,7 @@ async function renderOrderCard(order) {
         return !name.includes('подушк');
     });
 
+    // Разворачиваем каждую позицию отдельно
     const expandedItems = [];
     filteredItems.forEach(item => {
         const count = item.kolichestvo || 1;
@@ -284,6 +278,7 @@ async function renderOrderCard(order) {
         }
     });
 
+    // Группировка для сводки
     const groups = {};
     expandedItems.forEach(item => {
         const key = item.mebel;
@@ -303,8 +298,8 @@ async function renderOrderCard(order) {
 
     if (!summaryHtml) summaryHtml = 'Нет позиций (все подушки)';
 
+    // Список каждой позиции отдельно
     let itemsHtml = expandedItems.map((item, idx) => {
-        const num = item.individualNumber || idx + 1;
         return `
             <div class="item-row">
                 <span class="item-name">${item.mebel}</span>
@@ -320,7 +315,7 @@ async function renderOrderCard(order) {
     if (!itemsHtml) itemsHtml = 'Нет позиций';
 
     const statusMap = {
-        'новый': { label: '🆕 Новый', class: 'insuik' },
+        'новый': { label: '🆕 Новый', class: 'new' },
         'в_столярке': { label: '🛠 В работе', class: 'active' },
         'чертеж_готов': { label: '📐 Чертёж готов', class: 'waiting' },
         'столярка_готова': { label: '✅ Готово', class: 'done' },
@@ -329,6 +324,7 @@ async function renderOrderCard(order) {
     const statusInfo = statusMap[order.stats] || { label: order.stats || 'новый', class: '' };
 
     const statusOptions = [
+        { value: 'новый', label: '🆕 Новый' },
         { value: 'в_столярке', label: '🛠 Взять в работу' },
         { value: 'чертеж_готов', label: '📐 Чертёж готов' },
         { value: 'столярка_готова', label: '✅ Готово' },
@@ -383,11 +379,18 @@ async function renderOrderCard(order) {
 // ═══════════════════════════════════════════════════════════════════
 
 async function changeOrderStatus(orderId, newStatus) {
-    if (!newStatus) return;
+    if (!newStatus || !orderId) {
+        showMessage('❌ Ошибка: не указан ID заказа или статус', 'error');
+        return;
+    }
+
     try {
+        console.log(`🔄 Меняем статус заказа ${orderId} на "${newStatus}"`);
+        
         await pb.collection('orders').update(orderId, {
             stats: newStatus,
         });
+        
         showMessage(`✅ Статус заказа изменён на "${newStatus}"`, 'success');
         loadAllTabs();
     } catch (err) {
