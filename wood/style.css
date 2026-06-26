@@ -462,6 +462,33 @@ body {
 }
 
 /* =============================================
+   ПОДСВЕТКА ДАТЫ СДАЧИ
+   ============================================= */
+
+.date-ok {
+    color: #22c55e;
+    font-weight: 600;
+}
+
+.date-warning {
+    color: #f59e0b;
+    font-weight: 600;
+}
+
+.date-urgent {
+    color: #ef4444;
+    font-weight: 700;
+}
+
+.date-overdue {
+    color: #dc2626;
+    font-weight: 700;
+    background: #fee2e2;
+    padding: 0 6px;
+    border-radius: 4px;
+}
+
+/* =============================================
    СООБЩЕНИЯ
    ============================================= */
 
