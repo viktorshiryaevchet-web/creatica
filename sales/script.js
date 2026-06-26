@@ -103,7 +103,7 @@ async function loadCatalog() {
     try {
         const result = await pb.collection('katalog_mebeli').getFullList();
         state.catalog = result;
-        console.log(`✅ Загружено ${state.catalog.length} позиций мебели`);
+        console.log('✅ Загружено ' + state.catalog.length + ' позиций мебели');
     } catch (err) {
         console.error('Ошибка загрузки справочника:', err);
     }
@@ -119,7 +119,7 @@ async function loadMyOrders() {
 
     try {
         const orders = await pb.collection('orders').getList(1, 100, {
-            filter: `menedzer_id = "${state.currentUser.record.id}"`,
+            filter: 'menedzer_id = "' + state.currentUser.record.id + '"',
             sort: '-created',
             expand: 'menedzer_id',
         });
@@ -129,7 +129,8 @@ async function loadMyOrders() {
             return;
         }
 
-        container.innerHTML = orders.items.map(order => {
+        let html = '';
+        for (const order of orders.items) {
             const statusColors = {
                 'новый': '#4a90d9',
                 'у_конструктора': '#f39c12',
@@ -148,40 +149,42 @@ async function loadMyOrders() {
             };
             const statusColor = statusColors[order.stats] || '#666';
 
-            return `
-                <div class="order-card" data-id="${order.id}">
-                    <div class="order-header">
-                        <span class="order-number">Заказ #${order.nomer_partii}</span>
-                        <span class="order-status" style="background:${statusColor}20; color:${statusColor}; border:1px solid ${statusColor}40;">
-                            ${order.stats || 'новый'}
-                        </span>
-                    </div>
-                    <div class="order-client">👤 Клиент: ${order.klient}</div>
-                    <div class="order-details">
-                        <span class="order-items-count" data-id="${order.id}">📦 Позиции: загрузка...</span>
-                        ${order.data_sdai ? ` | 📅 Сдача: ${new Date(order.data_sdai).toLocaleDateString()}` : ''}
-                        ${order.kommentarii ? ` | 💬 ${order.kommentarii}` : ''}
-                    </div>
-                    <div class="order-date">📅 Создан: ${new Date(order.created).toLocaleString()}</div>
-                    <div style="display:flex; gap:8px; margin-top:8px;">
-                        <button class="btn btn-secondary" style="padding:4px 16px; font-size:13px;" data-id="${order.id}">✏️ Редактировать</button>
-                        <button class="btn btn-danger" style="padding:4px 12px; font-size:13px;" data-id="${order.id}">🗑️ Удалить</button>
-                    </div>
-                </div>
-            `;
-        }).join('');
+            html += '<div class="order-card" data-id="' + order.id + '">' +
+                '<div class="order-header">' +
+                    '<span class="order-number">Заказ #' + order.nomer_partii + '</span>' +
+                    '<span class="order-status" style="background:' + statusColor + '20; color:' + statusColor + '; border:1px solid ' + statusColor + '40;">' +
+                        (order.stats || 'новый') +
+                    '</span>' +
+                '</div>' +
+                '<div class="order-client">👤 Клиент: ' + order.klient + '</div>' +
+                '<div class="order-details">' +
+                    '<span class="order-items-count" data-id="' + order.id + '">📦 Позиции: загрузка...</span>' +
+                    (order.data_sdai ? ' | 📅 Сдача: ' + new Date(order.data_sdai).toLocaleDateString() : '') +
+                    (order.kommentarii ? ' | 💬 ' + order.kommentarii : '') +
+                '</div>' +
+                '<div class="order-date">📅 Создан: ' + new Date(order.created).toLocaleString() + '</div>' +
+                '<div style="display:flex; gap:8px; margin-top:8px;">' +
+                    '<button class="btn btn-secondary" style="padding:4px 16px; font-size:13px;" data-id="' + order.id + '">✏️ Редактировать</button>' +
+                    '<button class="btn btn-danger" style="padding:4px 12px; font-size:13px;" data-id="' + order.id + '">🗑️ Удалить</button>' +
+                '</div>' +
+            '</div>';
+        }
+        container.innerHTML = html;
 
+        // Загружаем количество позиций для каждого заказа
         for (const order of orders.items) {
             try {
                 const result = await pb.collection('order_items').getList(1, 1, {
-                    filter: `order_id = "${order.id}"`,
+                    filter: 'order_id = "' + order.id + '"',
                 });
-                const countEl = document.querySelector(`.order-items-count[data-id="${order.id}"]`);
-                if (countEl) countEl.textContent = `📦 Позиций: ${result.totalItems}`;
+                const countEl = document.querySelector('.order-items-count[data-id="' + order.id + '"]');
+                if (countEl) countEl.textContent = '📦 Позиций: ' + result.totalItems;
             } catch (e) {}
         }
 
-        document.querySelectorAll('.order-card .btn-secondary').forEach(btn => {
+        // Обработчики для кнопок
+        const editBtns = container.querySelectorAll('.btn-secondary');
+        editBtns.forEach(function(btn) {
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 const orderId = this.dataset.id;
@@ -189,7 +192,8 @@ async function loadMyOrders() {
             });
         });
 
-        document.querySelectorAll('.order-card .btn-danger').forEach(btn => {
+        const deleteBtns = container.querySelectorAll('.btn-danger');
+        deleteBtns.forEach(function(btn) {
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 const orderId = this.dataset.id;
@@ -199,7 +203,8 @@ async function loadMyOrders() {
             });
         });
 
-        document.querySelectorAll('.order-card').forEach(card => {
+        const cards = container.querySelectorAll('.order-card');
+        cards.forEach(function(card) {
             card.addEventListener('click', function() {
                 const orderId = this.dataset.id;
                 openOrderForEdit(orderId);
@@ -219,7 +224,7 @@ async function loadMyOrders() {
 async function deleteOrder(orderId) {
     try {
         const items = await pb.collection('order_items').getList(1, 100, {
-            filter: `order_id = "${orderId}"`,
+            filter: 'order_id = "' + orderId + '"',
         });
         for (const item of items.items) {
             await pb.collection('order_items').delete(item.id);
@@ -244,7 +249,7 @@ async function openOrderForEdit(orderId) {
         });
 
         const items = await pb.collection('order_items').getList(1, 100, {
-            filter: `order_id = "${orderId}"`,
+            filter: 'order_id = "' + orderId + '"',
             sort: 'nomer_pozicii',
         });
 
@@ -253,22 +258,24 @@ async function openOrderForEdit(orderId) {
         document.getElementById('orderComment').value = order.kommentarii || '';
         document.getElementById('needsDevelopment').checked = order.njna_razrabotka || false;
 
-        state.items = items.items.map(item => ({
-            id: item.id,
-            name: item.mebel || '',
-            fabric: item.tkan || 'Не указана',
-            color: item.cvet_opor || '',
-            finish: item.otdelka || 'Не указана',
-            quantity: item.kolichestvo || 1,
-            komplektnost: item.komplektnost || '',
-            podushki: item.kolichestvo_podushek || '',
-        }));
+        state.items = items.items.map(function(item) {
+            return {
+                id: item.id,
+                name: item.mebel || '',
+                fabric: item.tkan || 'Не указана',
+                color: item.cvet_opor || '',
+                finish: item.otdelka || 'Не указана',
+                quantity: item.kolichestvo || 1,
+                komplektnost: item.komplektnost || '',
+                podushki: item.kolichestvo_podushek || '',
+            };
+        });
 
         state.currentOrderId = orderId;
         renderItems();
 
         switchTab('newOrder');
-        document.querySelector('#tabNewOrder h2').textContent = `✏️ Редактирование заказа #${order.nomer_partii}`;
+        document.querySelector('#tabNewOrder h2').textContent = '✏️ Редактирование заказа #' + order.nomer_partii;
         document.getElementById('createOrderBtn').textContent = '💾 Сохранить изменения';
 
         document.getElementById('furnitureSearch').value = '';
@@ -281,7 +288,7 @@ async function openOrderForEdit(orderId) {
         document.getElementById('podushki').value = '';
         state.selectedFurniture = null;
 
-        showMessage(`📝 Заказ #${order.nomer_partii} открыт для редактирования. Позиций: ${state.items.length}`, 'info');
+        showMessage('📝 Заказ #' + order.nomer_partii + ' открыт для редактирования. Позиций: ' + state.items.length, 'info');
 
     } catch (err) {
         console.error('Ошибка загрузки заказа:', err);
@@ -293,7 +300,7 @@ async function openOrderForEdit(orderId) {
 // 📑 ВКЛАДКИ
 // ═══════════════════════════════════════════════════════════════════
 
-document.querySelectorAll('.tab-btn').forEach(btn => {
+document.querySelectorAll('.tab-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
         const tab = this.dataset.tab;
         switchTab(tab);
@@ -301,10 +308,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 function switchTab(tab) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelector(`.tab-btn[data-tab="${tab}"]`).classList.add('active');
+    const btns = document.querySelectorAll('.tab-btn');
+    btns.forEach(function(b) { b.classList.remove('active'); });
+    document.querySelector('.tab-btn[data-tab="' + tab + '"]').classList.add('active');
 
-    document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+    const contents = document.querySelectorAll('.tab-content');
+    contents.forEach(function(c) { c.style.display = 'none'; });
 
     if (tab === 'myOrders') {
         document.getElementById('tabMyOrders').style.display = 'block';
@@ -369,10 +378,10 @@ searchInput.addEventListener('input', function() {
     }
 
     clearTimeout(state.searchTimeout);
-    state.searchTimeout = setTimeout(() => {
+    state.searchTimeout = setTimeout(function() {
         try {
             const lowerQuery = query.toLowerCase();
-            const results = state.catalog.filter(item => {
+            const results = state.catalog.filter(function(item) {
                 const polnoe = (item.polnoe_nazvanie || '').toLowerCase();
                 const nazvanie = (item.nazvanie || '').toLowerCase();
                 return polnoe.includes(lowerQuery) || nazvanie.includes(lowerQuery);
@@ -381,17 +390,20 @@ searchInput.addEventListener('input', function() {
             if (results.length === 0) {
                 suggestionsEl.innerHTML = '<div class="suggestion-item" style="color:#999;">Ничего не найдено</div>';
             } else {
-                suggestionsEl.innerHTML = results.map(item => `
-                    <div class="suggestion-item" data-id="${item.id}">
-                        <div class="suggestion-title">${item.polnoe_nazvanie || item.nazvanie}</div>
-                        <div class="suggestion-desc">${item.modifikacij || ''}</div>
-                    </div>
-                `).join('');
+                let html = '';
+                results.forEach(function(item) {
+                    html += '<div class="suggestion-item" data-id="' + item.id + '">' +
+                        '<div class="suggestion-title">' + (item.polnoe_nazvanie || item.nazvanie) + '</div>' +
+                        '<div class="suggestion-desc">' + (item.modifikacij || '') + '</div>' +
+                    '</div>';
+                });
+                suggestionsEl.innerHTML = html;
 
-                document.querySelectorAll('.suggestion-item[data-id]').forEach(el => {
+                const items = suggestionsEl.querySelectorAll('.suggestion-item[data-id]');
+                items.forEach(function(el) {
                     el.addEventListener('click', function() {
                         const id = this.dataset.id;
-                        const item = results.find(i => i.id === id);
+                        const item = results.find(function(i) { return i.id === id; });
                         if (item) selectFurniture(item);
                     });
                 });
@@ -483,26 +495,27 @@ function renderItems() {
         return;
     }
 
-    container.innerHTML = state.items.map((item, index) => {
-        let details = `Ткань: ${item.fabric} | Цвет опор: ${item.color} | Отделка: ${item.finish} | Количество: ${item.quantity}`;
-        if (item.komplektnost) details += ` | Комплектность: ${item.komplektnost}`;
-        if (item.podushki) details += ` | Подушки: ${item.podushki}`;
+    let html = '';
+    state.items.forEach(function(item, index) {
+        let details = 'Ткань: ' + item.fabric + ' | Цвет опор: ' + item.color + ' | Отделка: ' + item.finish + ' | Количество: ' + item.quantity;
+        if (item.komplektnost) details += ' | Комплектность: ' + item.komplektnost;
+        if (item.podushki) details += ' | Подушки: ' + item.podushki;
 
-        return `
-            <div class="item-row">
-                <div class="item-info">
-                    <div class="item-name">${item.name}</div>
-                    <div class="item-detail">${details}</div>
-                </div>
-                <div style="display:flex; gap:6px;">
-                    <button class="btn btn-secondary" style="padding:4px 10px; font-size:13px;" data-index="${index}" data-action="edit">✏️</button>
-                    <button class="btn btn-danger" data-index="${index}" data-action="delete">✕</button>
-                </div>
-            </div>
-        `;
-    }).join('');
+        html += '<div class="item-row">' +
+            '<div class="item-info">' +
+                '<div class="item-name">' + item.name + '</div>' +
+                '<div class="item-detail">' + details + '</div>' +
+            '</div>' +
+            '<div style="display:flex; gap:6px;">' +
+                '<button class="btn btn-secondary" style="padding:4px 10px; font-size:13px;" data-index="' + index + '" data-action="edit">✏️</button>' +
+                '<button class="btn btn-danger" data-index="' + index + '" data-action="delete">✕</button>' +
+            '</div>' +
+        '</div>';
+    });
+    container.innerHTML = html;
 
-    document.querySelectorAll('#itemsList .btn-danger').forEach(btn => {
+    const deleteBtns = container.querySelectorAll('.btn-danger');
+    deleteBtns.forEach(function(btn) {
         btn.addEventListener('click', function() {
             const index = parseInt(this.dataset.index);
             state.items.splice(index, 1);
@@ -510,7 +523,8 @@ function renderItems() {
         });
     });
 
-    document.querySelectorAll('#itemsList .btn-secondary').forEach(btn => {
+    const editBtns = container.querySelectorAll('.btn-secondary');
+    editBtns.forEach(function(btn) {
         btn.addEventListener('click', function() {
             const index = parseInt(this.dataset.index);
             editItem(index);
@@ -534,7 +548,9 @@ function editItem(index) {
     document.getElementById('komplektnost').value = item.komplektnost || '';
     document.getElementById('podushki').value = item.podushki || '';
 
-    const found = state.catalog.find(c => c.polnoe_nazvanie === item.name || c.nazvanie === item.name);
+    const found = state.catalog.find(function(c) {
+        return c.polnoe_nazvanie === item.name || c.nazvanie === item.name;
+    });
     if (found) {
         state.selectedFurniture = found;
     }
@@ -589,7 +605,7 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
             await pb.collection('orders').update(state.currentOrderId, updateData);
 
             const oldItems = await pb.collection('order_items').getList(1, 100, {
-                filter: `order_id = "${state.currentOrderId}"`,
+                filter: 'order_id = "' + state.currentOrderId + '"',
             });
             for (const item of oldItems.items) {
                 await pb.collection('order_items').delete(item.id);
@@ -610,7 +626,7 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
                 });
             }
 
-            showMessage(`✅ Заказ #${state.currentOrderId} обновлён!`, 'success');
+            showMessage('✅ Заказ #' + state.currentOrderId + ' обновлён!', 'success');
             state.currentOrderId = null;
             switchTab('myOrders');
 
@@ -637,7 +653,8 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
             formData.append('njna_razrabotka', needsDevelopment);
             formData.append('kommentarii', comment || '');
             formData.append('data_sdai', deliveryDate || null);
-            formData.append('stats', 'новый');
+            // ⬇️ ГЛАВНОЕ ИЗМЕНЕНИЕ: если галочка стоит — статус "у_конструктора"
+            formData.append('stats', needsDevelopment ? 'у_конструктора' : 'новый');
             if (file) {
                 formData.append('file', file);
             }
@@ -659,7 +676,7 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
                 });
             }
 
-            showMessage(`✅ Заказ #${nextOrderNumber} успешно создан!`, 'success');
+            showMessage('✅ Заказ #' + nextOrderNumber + ' успешно создан!', 'success');
             clearOrderForm();
             document.querySelector('#tabNewOrder h2').textContent = '➕ Новый заказ';
             document.getElementById('createOrderBtn').textContent = '✅ Создать заказ';
@@ -684,7 +701,7 @@ function showMessage(text, type) {
     el.style.display = 'block';
 
     clearTimeout(window.messageTimeout);
-    window.messageTimeout = setTimeout(() => {
+    window.messageTimeout = setTimeout(function() {
         el.style.display = 'none';
     }, 5000);
 }
