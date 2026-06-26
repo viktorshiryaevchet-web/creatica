@@ -46,7 +46,7 @@
                 </div>
             </div>
 
-            <!-- ВКЛАДКИ (БЕЗ ФИЛЬТРОВ) -->
+            <!-- ВКЛАДКИ -->
             <div class="tabs">
                 <button class="tab-btn active" data-tab="all">📋 Все позиции</button>
                 <button class="tab-btn" data-tab="development">📐 Разработка</button>
@@ -56,12 +56,9 @@
 
             <!-- ВКЛАДКА: ВСЕ ПОЗИЦИИ -->
             <div id="tabAll" class="tab-content active">
-                <div style="margin-bottom:16px;">
-                    <button id="loadAllItemsBtn" class="btn btn-primary" style="width:100%; padding:14px; font-size:16px;">
-                        📋 Загрузить все позиции
-                    </button>
+                <div id="ordersListAll">
+                    <p class="empty-text">Загрузка...</p>
                 </div>
-                <div id="ordersListAll"><p class="empty-text">Нажмите кнопку для загрузки</p></div>
             </div>
 
             <!-- ВКЛАДКА: РАЗРАБОТКА -->
