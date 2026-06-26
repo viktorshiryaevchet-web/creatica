@@ -293,7 +293,7 @@ async function loadTab(tab) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 📌 СМЕНА СТАТУСА ПОЗИЦИИ
+// 📌 СМЕНА СТАТУСА ТОЛЬКО У ОДНОЙ ПОЗИЦИИ
 // ═══════════════════════════════════════════════════════════════════
 
 async function changeItemStatus(itemId, newStatus) {
@@ -305,6 +305,7 @@ async function changeItemStatus(itemId, newStatus) {
     try {
         console.log('🔄 Меняем статус позиции ' + itemId + ' на "' + newStatus + '"');
         
+        // ⚠️ ВАЖНО: обновляем ТОЛЬКО поле status в order_items!
         await pb.collection('order_items').update(itemId, {
             status: newStatus,
         });
