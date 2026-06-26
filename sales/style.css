@@ -1,3 +1,7 @@
+/* =============================================
+   ОСНОВНЫЕ НАСТРОЙКИ
+   ============================================= */
+
 * {
     margin: 0;
     padding: 0;
@@ -5,28 +9,269 @@
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #f0f2f5;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(145deg, #f6f9fc 0%, #e9f0f5 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     padding: 20px;
 }
 
 .container {
-    max-width: 800px;
+    width: 100%;
+    max-width: 900px;
+}
+
+/* =============================================
+   СТРАНИЦА ВХОДА
+   ============================================= */
+
+#authScreen .card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 32px;
+    padding: 48px 40px;
+    max-width: 440px;
+    margin: 0 auto;
+    box-shadow: 
+        0 30px 80px rgba(0, 0, 0, 0.08),
+        0 10px 30px rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    transition: transform 0.2s ease;
+}
+
+#authScreen .card:hover {
+    transform: translateY(-2px);
+}
+
+#authScreen .card .logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
+}
+
+#authScreen .card .logo-icon {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, #4a90d9, #357abd);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    color: white;
+    box-shadow: 0 8px 24px rgba(74, 144, 217, 0.3);
+}
+
+#authScreen .card h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: #1a1a2e;
+    text-align: center;
+    margin-bottom: 4px;
+    letter-spacing: -0.5px;
+}
+
+#authScreen .card .subtitle {
+    color: #888;
+    font-size: 15px;
+    text-align: center;
+    margin-bottom: 32px;
+    font-weight: 400;
+}
+
+#authScreen .form-group {
+    margin-bottom: 18px;
+}
+
+#authScreen .form-group label {
+    font-weight: 600;
+    font-size: 13px;
+    color: #333;
+    display: block;
+    margin-bottom: 6px;
+    letter-spacing: -0.2px;
+}
+
+#authScreen .form-group input {
+    width: 100%;
+    padding: 14px 18px;
+    border: 2px solid #e8ecf0;
+    border-radius: 14px;
+    font-size: 15px;
+    font-family: inherit;
+    transition: all 0.2s;
+    background: #f8fafc;
+    color: #1a1a2e;
+}
+
+#authScreen .form-group input:focus {
+    outline: none;
+    border-color: #4a90d9;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(74, 144, 217, 0.10);
+}
+
+#authScreen .form-group input::placeholder {
+    color: #b0b8c4;
+}
+
+#authScreen .btn-primary {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #4a90d9, #357abd);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 6px;
+    box-shadow: 0 4px 16px rgba(74, 144, 217, 0.25);
+}
+
+#authScreen .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(74, 144, 217, 0.35);
+}
+
+#authScreen .btn-primary:active {
+    transform: scale(0.98);
+}
+
+#authScreen .message {
+    margin-top: 16px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    display: none;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+#authScreen .message.success {
+    display: block;
+    background: #d4edda;
+    color: #155724;
+}
+
+#authScreen .message.error {
+    display: block;
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* =============================================
+   ОСНОВНОЙ ИНТЕРФЕЙС
+   ============================================= */
+
+#mainScreen {
+    max-width: 900px;
     margin: 0 auto;
 }
 
-h1 {
-    color: #1a1a2e;
-    margin-bottom: 30px;
-    font-size: 28px;
+/* =============================================
+   ШАПКА
+   ============================================= */
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: white;
+    padding: 14px 24px;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.04);
 }
+
+.header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1a1a2e;
+    letter-spacing: -0.5px;
+    margin: 0;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.header-right .user-name {
+    font-weight: 600;
+    color: #333;
+    font-size: 15px;
+    background: #f1f3f5;
+    padding: 4px 14px;
+    border-radius: 20px;
+}
+
+/* =============================================
+   ВКЛАДКИ
+   ============================================= */
+
+.tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    background: #f1f3f5;
+    padding: 4px;
+    border-radius: 14px;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 600;
+    color: #666;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.tab-btn:hover {
+    color: #333;
+}
+
+.tab-btn.active {
+    background: white;
+    color: #1a1a2e;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.tab-content {
+    animation: fadeIn 0.25s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* =============================================
+   КАРТОЧКИ
+   ============================================= */
 
 .card {
     background: white;
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 24px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-radius: 16px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .card h2 {
@@ -34,8 +279,12 @@ h1 {
     color: #1a1a2e;
     margin-bottom: 16px;
     border-bottom: 2px solid #f0f2f5;
-    padding-bottom: 12px;
+    padding-bottom: 10px;
 }
+
+/* =============================================
+   ФОРМЫ
+   ============================================= */
 
 .form-group {
     margin-bottom: 16px;
@@ -55,102 +304,134 @@ h1 {
 .form-group select {
     width: 100%;
     padding: 10px 14px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
+    border: 2px solid #e8ecf0;
+    border-radius: 10px;
     font-size: 14px;
     transition: border-color 0.2s;
     font-family: inherit;
+    background: #f8fafc;
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
     outline: none;
     border-color: #4a90d9;
-    box-shadow: 0 0 0 3px rgba(74,144,217,0.1);
+    box-shadow: 0 0 0 4px rgba(74, 144, 217, 0.08);
+    background: white;
 }
 
 .form-group textarea {
     width: 100%;
     padding: 12px 16px;
-    border: 1px solid #ddd;
+    border: 2px solid #e8ecf0;
     border-radius: 10px;
     font-size: 14px;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Inter', sans-serif;
     resize: vertical;
     min-height: 100px;
     max-height: 250px;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    background: #fafafa;
+    transition: border-color 0.2s;
+    background: #f8fafc;
     line-height: 1.5;
 }
 
 .form-group textarea:focus {
     outline: none;
     border-color: #4a90d9;
-    box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.15);
+    box-shadow: 0 0 0 4px rgba(74, 144, 217, 0.08);
     background: white;
 }
 
 .form-group textarea::placeholder {
-    color: #aaa;
-    font-style: italic;
+    color: #b0b8c4;
+}
+
+.form-group small {
+    color: #888;
+    display: block;
+    margin-top: 4px;
+    font-size: 13px;
 }
 
 /* =============================================
-   Кнопки
+   КНОПКИ
    ============================================= */
 
 .btn {
     padding: 12px 24px;
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 16px;
     font-weight: 600;
+    font-family: inherit;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s;
 }
 
 .btn-primary {
     background: #4a90d9;
     color: white;
 }
-
 .btn-primary:hover {
     background: #357abd;
 }
 
 .btn-secondary {
-    background: #e9ecef;
+    background: #f1f3f5;
     color: #333;
 }
-
 .btn-secondary:hover {
-    background: #dde1e6;
+    background: #e5e8eb;
 }
 
 .btn-danger {
-    background: #dc3545;
+    background: #ef4444;
     color: white;
-    padding: 6px 12px;
-    font-size: 13px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
+}
+.btn-danger:hover {
+    background: #dc2626;
 }
 
-.btn-danger:hover {
-    background: #c82333;
+.btn-sm {
+    padding: 6px 14px;
+    font-size: 13px;
+    border-radius: 8px;
+}
+
+#createOrderBtn {
+    display: block;
+    width: 100%;
+    padding: 16px 24px;
+    font-size: 18px;
+    font-weight: 700;
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    margin-top: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+#createOrderBtn:hover {
+    background: #218838;
+}
+
+#createOrderBtn:active {
+    transform: scale(0.98);
 }
 
 /* =============================================
-   Подсказки при поиске
+   ПОДСКАЗКИ
    ============================================= */
 
 .suggestions {
     position: absolute;
     background: white;
-    border: 1px solid #ddd;
-    border-radius: 8px;
+    border: 2px solid #e8ecf0;
+    border-radius: 10px;
     max-height: 200px;
     overflow-y: auto;
     width: 100%;
@@ -158,7 +439,8 @@ h1 {
     display: none;
     top: 100%;
     left: 0;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    margin-top: 4px;
 }
 
 .suggestions.show {
@@ -190,14 +472,84 @@ h1 {
 }
 
 /* =============================================
-   Список позиций в заказе
+   СПИСОК ЗАКАЗОВ
+   ============================================= */
+
+.order-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 12px;
+    border-left: 5px solid #4a90d9;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.order-card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
+}
+
+.order-card .order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.order-card .order-number {
+    font-weight: 700;
+    font-size: 17px;
+    color: #1a1a2e;
+}
+
+.order-card .order-status {
+    font-size: 12px;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.order-card .order-client {
+    font-size: 15px;
+    color: #333;
+    font-weight: 500;
+    margin-top: 2px;
+}
+
+.order-card .order-details {
+    font-size: 13px;
+    color: #666;
+    margin-top: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+}
+
+.order-card .order-details span {
+    background: #f8fafc;
+    padding: 2px 10px;
+    border-radius: 6px;
+}
+
+.order-card .order-date {
+    font-size: 12px;
+    color: #999;
+    margin-top: 6px;
+}
+
+/* =============================================
+   СПИСОК ПОЗИЦИЙ В ЗАКАЗЕ
    ============================================= */
 
 #itemsList .item-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 0;
+    padding: 10px 0;
     border-bottom: 1px solid #f0f2f5;
 }
 
@@ -221,192 +573,99 @@ h1 {
     margin-top: 2px;
 }
 
-.empty-text {
-    color: #999;
-    text-align: center;
-    padding: 20px;
-}
-
 /* =============================================
-   Сообщения
+   СООБЩЕНИЯ
    ============================================= */
 
 .message {
-    padding: 16px;
-    border-radius: 8px;
-    margin-top: 16px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-top: 12px;
     display: none;
-    white-space: pre-wrap;
+    font-size: 14px;
+    font-weight: 500;
 }
 
 .message.success {
     display: block;
     background: #d4edda;
     color: #155724;
-    border: 1px solid #c3e6cb;
 }
 
 .message.error {
     display: block;
     background: #f8d7da;
     color: #721c24;
-    border: 1px solid #f5c6cb;
 }
 
 .message.info {
     display: block;
     background: #d1ecf1;
     color: #0c5460;
-    border: 1px solid #bee5eb;
 }
 
-/* =============================================
-   Кнопка "Создать заказ"
-   ============================================= */
-
-#createOrderBtn {
-    display: block;
-    width: 100%;
-    padding: 16px 24px;
-    font-size: 18px;
-    font-weight: 700;
-    background: #28a745;
-    color: white;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: background 0.2s, transform 0.1s;
-    margin-top: 8px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
-}
-
-#createOrderBtn:hover {
-    background: #218838;
-}
-
-#createOrderBtn:active {
-    transform: scale(0.98);
-}
-
-/* =============================================
-   Вкладки
-   ============================================= */
-
-.tabs {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 24px;
-    border-bottom: 2px solid #e9ecef;
-    padding-bottom: 4px;
-}
-
-.tab-btn {
-    padding: 10px 20px;
-    border: none;
-    background: transparent;
+.empty-text {
+    color: #999;
+    text-align: center;
+    padding: 40px 20px;
     font-size: 15px;
-    font-weight: 600;
-    color: #666;
-    cursor: pointer;
-    border-radius: 8px 8px 0 0;
-    transition: all 0.2s;
-}
-
-.tab-btn:hover {
-    background: #f0f2f5;
-    color: #333;
-}
-
-.tab-btn.active {
-    color: #4a90d9;
-    background: #e8f0fe;
-    border-bottom: 3px solid #4a90d9;
-}
-
-.tab-content {
-    animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
 }
 
 /* =============================================
-   Заказы в списке (карточки)
+   АДАПТИВ
    ============================================= */
 
-.order-card {
-    background: #f8f9fa;
-    border-radius: 10px;
-    padding: 16px 20px;
-    margin-bottom: 12px;
-    border-left: 4px solid #4a90d9;
-    cursor: pointer;
-    transition: background 0.2s, box-shadow 0.2s;
-}
-
-.order-card:hover {
-    background: #eef2f7;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-}
-
-.order-card .order-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
-    flex-wrap: wrap;
-    gap: 6px;
-}
-
-.order-card .order-number {
-    font-weight: 700;
-    font-size: 16px;
-    color: #1a1a2e;
-}
-
-.order-card .order-status {
-    font-size: 12px;
-    padding: 3px 12px;
-    border-radius: 20px;
-    font-weight: 600;
-}
-
-.order-card .order-client {
-    font-size: 14px;
-    color: #333;
-    font-weight: 500;
-}
-
-.order-card .order-details {
-    font-size: 13px;
-    color: #555;
-    margin-top: 4px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 12px;
-}
-
-.order-card .order-details span {
-    background: #f0f2f5;
-    padding: 2px 10px;
-    border-radius: 4px;
-    font-size: 12px;
-}
-
-.order-card .order-date {
-    font-size: 12px;
-    color: #888;
-    margin-top: 6px;
-}
-
-/* =============================================
-   Кнопка входа
-   ============================================= */
-
-#loginBtn {
-    width: 100%;
-    margin-top: 8px;
+@media (max-width: 640px) {
+    .header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 16px;
+    }
+    .header h1 {
+        text-align: center;
+    }
+    .header-right {
+        justify-content: center;
+    }
+    .tabs {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    .tab-btn {
+        flex: 1;
+        text-align: center;
+        font-size: 13px;
+        padding: 8px 10px;
+    }
+    .card {
+        padding: 16px;
+    }
+    #authScreen .card {
+        padding: 32px 20px;
+    }
+    #authScreen .card .logo-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 24px;
+    }
+    .order-card .order-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .order-card .order-details {
+        flex-direction: column;
+        gap: 4px;
+    }
+    .order-card .order-details span {
+        display: inline-block;
+    }
+    #itemsList .item-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    #itemsList .item-info {
+        padding-right: 0;
+    }
 }
