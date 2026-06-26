@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Столярный цех</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔨</text></svg>">
     <script src="https://unpkg.com/pocketbase@0.21.5/dist/pocketbase.umd.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -34,7 +35,7 @@
         <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
         <div id="mainScreen" style="display:none;">
 
-            <!-- ШАПКА + ФИЛЬТРЫ (В ОДНОЙ ЛИНИИ) -->
+            <!-- ШАПКА + ФИЛЬТРЫ -->
             <div class="header-bar">
                 <div class="header-left">
                     <h1>🔨 Столярный цех</h1>
@@ -52,7 +53,7 @@
                 </div>
             </div>
 
-            <!-- ВКЛАДКИ -->
+            <!-- Вкладки -->
             <div class="tabs">
                 <button class="tab-btn active" data-tab="new">🆕 Новые</button>
                 <button class="tab-btn" data-tab="active">🛠 В работе</button>
@@ -60,7 +61,7 @@
                 <button class="tab-btn" data-tab="completed">✅ Готово</button>
             </div>
 
-            <!-- ВКЛАДКИ С ЗАКАЗАМИ -->
+            <!-- Вкладки с заказами -->
             <div id="tabNew" class="tab-content active"><div id="ordersListNew"><p class="empty-text">Загрузка...</p></div></div>
             <div id="tabActive" class="tab-content" style="display:none;"><div id="ordersListActive"><p class="empty-text">Загрузка...</p></div></div>
             <div id="tabDevelopment" class="tab-content" style="display:none;"><div id="ordersListDevelopment"><p class="empty-text">Загрузка...</p></div></div>
