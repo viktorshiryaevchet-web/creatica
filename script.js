@@ -2,21 +2,7 @@
 // 📦 ПОДКЛЮЧЕНИЕ К POCKETBASE (Отдел продаж)
 // ═══════════════════════════════════════════════════════════════════
 
-// Создаём уникальный ключ для хранилища отдела продаж
-const STORAGE_KEY = 'creatica_sales_auth';
-
-// Создаём кастомное хранилище с использованием AsyncAuthStore
-const authStore = new AsyncAuthStore({
-    save: async (token, model) => {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ token, model }));
-    },
-    clear: async () => {
-        localStorage.removeItem(STORAGE_KEY);
-    },
-    initial: localStorage.getItem(STORAGE_KEY) || undefined,
-});
-
-const pb = new PocketBase('https://creatica.duckdns.org', authStore);
+const pb = new PocketBase('https://creatica.duckdns.org');
 pb.autoCancellation(false);
 
 // ═══════════════════════════════════════════════════════════════════
