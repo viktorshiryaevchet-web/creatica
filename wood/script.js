@@ -173,7 +173,7 @@ async function loadTab(tab) {
             filter = `stats = "в_столярке" || stats = "чертеж_готов"`;
             break;
         case 'development':
-            filter = `stats = "у_конструктора" || нужна_разработка = true`;
+            filter = `stats = "у_конструктора" || njna_razrabotka = true`;
             break;
         case 'completed':
             filter = `stats = "столярка_готова"`;
@@ -286,7 +286,7 @@ async function renderOrderCard(order) {
         `;
     } else if (order.stats === 'столярка_готова') {
         actionsHtml = `<span style="color:#22c55e; font-weight:600;">✅ Завершён</span>`;
-    } else if (order.stats === 'у_конструктора' || order.нужна_разработка) {
+    } else if (order.stats === 'у_конструктора' || order.njna_razrabotka) {
         actionsHtml = `<span style="color:#f59e0b; font-weight:600;">📐 В разработке</span>`;
     }
 
@@ -304,7 +304,7 @@ async function renderOrderCard(order) {
                 <span>📅 Сдача: ${deliveryDate}</span>
                 <span>📅 Создан: ${createdDate}</span>
                 <span>📦 Позиций: ${filteredItems.length}</span>
-                ${order.нужна_разработка ? ' | 🔨 Разработка' : ''}
+                ${order.njna_razrabotka ? ' | 🔨 Разработка' : ''}
             </div>
             <div class="order-items-group">
                 📋 Сводка по позициям:<br>
