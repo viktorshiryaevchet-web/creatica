@@ -40,7 +40,6 @@ const state = {
     searchQuery: '',
     furnitureFilter: '',
     filterText: '',
-    allFurnitureNames: [],
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -190,7 +189,6 @@ async function loadTab(tab) {
     container.innerHTML = '<p class="empty-text">Загрузка...</p>';
 
     try {
-        // Загружаем заказы с сортировкой по дате сдачи (ближайшая сверху)
         const orders = await pb.collection('orders').getList(1, 200, {
             sort: '+data_sdai, +created',
             expand: 'menedzer_id',
@@ -263,10 +261,9 @@ async function loadTab(tab) {
             return;
         }
 
-        // ⬇️ ФИЛЬТРАЦИЯ ПО ВКЛАДКЕ ⬇️
+        // Фильтрация по вкладке
         let filteredItems = [];
         if (tab === 'all') {
-            // Все позиции, КРОМЕ готовых (столярка_готова)
             filteredItems = allItems.filter(function(item) {
                 return item.status !== 'столярка_готова';
             });
@@ -279,20 +276,19 @@ async function loadTab(tab) {
                 return item.status === 'в_столярке';
             });
         } else if (tab === 'completed') {
-            // Только готовые
             filteredItems = allItems.filter(function(item) {
                 return item.status === 'столярка_готова';
             });
         }
 
-        // ⬇️ ФИЛЬТР ПО НАЗВАНИЮ МЕБЕЛИ ⬇️
+        // Фильтр по названию мебели
         if (state.furnitureFilter) {
             filteredItems = filteredItems.filter(function(item) {
                 return item.name === state.furnitureFilter;
             });
         }
 
-        // ⬇️ ПОИСК ПО НОМЕРУ ИЛИ КЛИЕНТУ ⬇️
+        // Поиск по номеру или клиенту
         if (state.searchQuery) {
             const lowerQuery = state.searchQuery;
             filteredItems = filteredItems.filter(function(item) {
@@ -301,7 +297,7 @@ async function loadTab(tab) {
             });
         }
 
-        // ⬇️ СОРТИРОВКА ПО ДАТЕ (ближайшая сверху) ⬇️
+        // Сортировка по дате (ближайшая сверху)
         filteredItems.sort(function(a, b) {
             if (!a.deliveryDateRaw) return 1;
             if (!b.deliveryDateRaw) return -1;
@@ -325,7 +321,6 @@ async function loadTab(tab) {
             });
         }
 
-        // ⬇️ ОТОБРАЖЕНИЕ ⬇️
         const statusMap = {
             'новый': { label: '🆕 Новый', class: 'new' },
             'в_столярке': { label: '🛠 В работе', class: 'active' },
