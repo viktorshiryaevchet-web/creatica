@@ -46,37 +46,37 @@
                 </div>
             </div>
 
-            <!-- ФИЛЬТРЫ -->
-            <div class="filter-bar">
-                <input type="text" id="searchInput" placeholder="🔍 Поиск по номеру или клиенту..." class="filter-search">
-                <input type="text" id="partyFilter" placeholder="📦 Фильтр по партии..." class="filter-search" style="min-width:150px;">
-                <label class="filter-checkbox">
-                    <input type="checkbox" id="showCompleted"> Завершённые
-                </label>
-                <button id="resetFiltersBtn" class="btn btn-secondary btn-sm">Сбросить</button>
-            </div>
-
-            <!-- ВКЛАДКИ -->
+            <!-- ВКЛАДКИ (БЕЗ ФИЛЬТРОВ) -->
             <div class="tabs">
-                <button class="tab-btn active" data-tab="new">🆕 Новые</button>
-                <button class="tab-btn" data-tab="active">🛠 В работе</button>
+                <button class="tab-btn active" data-tab="all">📋 Все позиции</button>
                 <button class="tab-btn" data-tab="development">📐 Разработка</button>
+                <button class="tab-btn" data-tab="active">🛠 В работе</button>
                 <button class="tab-btn" data-tab="completed">✅ Готово</button>
-                <button class="tab-btn" data-tab="all">📋 Все позиции</button>
             </div>
 
-            <!-- ВКЛАДКИ С ЗАКАЗАМИ -->
-            <div id="tabNew" class="tab-content active"><div id="ordersListNew"><p class="empty-text">Загрузка...</p></div></div>
-            <div id="tabActive" class="tab-content" style="display:none;"><div id="ordersListActive"><p class="empty-text">Загрузка...</p></div></div>
-            <div id="tabDevelopment" class="tab-content" style="display:none;"><div id="ordersListDevelopment"><p class="empty-text">Загрузка...</p></div></div>
-            <div id="tabCompleted" class="tab-content" style="display:none;"><div id="ordersListCompleted"><p class="empty-text">Загрузка...</p></div></div>
-            <div id="tabAll" class="tab-content" style="display:none;">
+            <!-- ВКЛАДКА: ВСЕ ПОЗИЦИИ -->
+            <div id="tabAll" class="tab-content active">
                 <div style="margin-bottom:16px;">
                     <button id="loadAllItemsBtn" class="btn btn-primary" style="width:100%; padding:14px; font-size:16px;">
                         📋 Загрузить все позиции
                     </button>
                 </div>
                 <div id="ordersListAll"><p class="empty-text">Нажмите кнопку для загрузки</p></div>
+            </div>
+
+            <!-- ВКЛАДКА: РАЗРАБОТКА -->
+            <div id="tabDevelopment" class="tab-content" style="display:none;">
+                <div id="ordersListDevelopment"><p class="empty-text">Загрузка...</p></div>
+            </div>
+
+            <!-- ВКЛАДКА: В РАБОТЕ -->
+            <div id="tabActive" class="tab-content" style="display:none;">
+                <div id="ordersListActive"><p class="empty-text">Загрузка...</p></div>
+            </div>
+
+            <!-- ВКЛАДКА: ГОТОВО -->
+            <div id="tabCompleted" class="tab-content" style="display:none;">
+                <div id="ordersListCompleted"><p class="empty-text">Загрузка...</p></div>
             </div>
 
         </div>
