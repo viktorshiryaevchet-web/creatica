@@ -123,30 +123,39 @@ const partyFilter = document.getElementById('partyFilter');
 const showCompletedCheckbox = document.getElementById('showCompleted');
 const resetFiltersBtn = document.getElementById('resetFiltersBtn');
 
-searchInput.addEventListener('input', function() {
-    state.searchQuery = this.value.trim().toLowerCase();
-    loadAllTabs();
-});
+// Проверяем, что элементы существуют, перед добавлением обработчиков
+if (searchInput) {
+    searchInput.addEventListener('input', function() {
+        state.searchQuery = this.value.trim().toLowerCase();
+        loadAllTabs();
+    });
+}
 
-partyFilter.addEventListener('input', function() {
-    state.partyFilter = this.value.trim();
-    loadAllTabs();
-});
+if (partyFilter) {
+    partyFilter.addEventListener('input', function() {
+        state.partyFilter = this.value.trim();
+        loadAllTabs();
+    });
+}
 
-showCompletedCheckbox.addEventListener('change', function() {
-    state.showCompleted = this.checked;
-    loadAllTabs();
-});
+if (showCompletedCheckbox) {
+    showCompletedCheckbox.addEventListener('change', function() {
+        state.showCompleted = this.checked;
+        loadAllTabs();
+    });
+}
 
-resetFiltersBtn.addEventListener('click', function() {
-    searchInput.value = '';
-    partyFilter.value = '';
-    state.searchQuery = '';
-    state.partyFilter = '';
-    showCompletedCheckbox.checked = false;
-    state.showCompleted = false;
-    loadAllTabs();
-});
+if (resetFiltersBtn) {
+    resetFiltersBtn.addEventListener('click', function() {
+        if (searchInput) searchInput.value = '';
+        if (partyFilter) partyFilter.value = '';
+        state.searchQuery = '';
+        state.partyFilter = '';
+        if (showCompletedCheckbox) showCompletedCheckbox.checked = false;
+        state.showCompleted = false;
+        loadAllTabs();
+    });
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // 📦 ЗАГРУЗКА ЗАКАЗОВ ПО ВКЛАДКАМ
