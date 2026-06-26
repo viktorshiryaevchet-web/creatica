@@ -11,6 +11,7 @@ pb.autoCancellation(false);
 
 const state = {
     currentUser: null,
+    filterText: '',
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -41,10 +42,7 @@ async function loadUserData() {
         userNameDisplay.textContent = state.currentUser.record?.name || state.currentUser.record?.email;
         const activeTab = document.querySelector('.tab-btn.active');
         if (activeTab) {
-            const tab = activeTab.dataset.tab;
-            if (tab !== 'all') {
-                loadTab(tab);
-            }
+            loadTab(activeTab.dataset.tab);
         }
     } catch (err) {
         pb.authStore.clear();
@@ -113,17 +111,12 @@ document.querySelectorAll('.tab-btn').forEach(function(btn) {
         if (content) {
             content.style.display = 'block';
         }
-        
-        if (tab === 'all') {
-            // Все позиции загружаются по кнопке
-        } else {
-            loadTab(tab);
-        }
+        loadTab(tab);
     });
 });
 
 // ═══════════════════════════════════════════════════════════════════
-// 📦 ЗАГРУЗКА ЗАКАЗОВ ПО ВКЛАДКАМ
+// 📦 ЗАГРУЗКА ПОЗИЦИЙ ПО ВКЛАДКАМ
 // ═══════════════════════════════════════════════════════════════════
 
 async function loadTab(tab) {
@@ -132,233 +125,8 @@ async function loadTab(tab) {
     if (!container) return;
     container.innerHTML = '<p class="empty-text">Загрузка...</p>';
 
-    let filter = '';
-    let sort = '+data_sdai, +created';
-
-    if (tab === 'active') {
-        filter = 'stats = "в_столярке" || stats = "чертеж_готов"';
-    } else if (tab === 'development') {
-        filter = 'njna_razrabotka = true';
-    } else if (tab === 'completed') {
-        filter = 'stats = "столярка_готова"';
-        sort = '-data_sdai, -created';
-    }
-
     try {
-        const result = await pb.collection('orders').getList(1, 200, {
-            filter: filter,
-            sort: sort,
-            expand: 'menedzer_id',
-        });
-
-        if (result.items.length === 0) {
-            container.innerHTML = '<p class="empty-text">Нет заказов</p>';
-            return;
-        }
-
-        let html = '';
-        for (const order of result.items) {
-            const orderHtml = await renderOrderCard(order);
-            html += orderHtml;
-        }
-        container.innerHTML = html;
-
-        const selects = container.querySelectorAll('.status-select');
-        selects.forEach(function(select) {
-            select.addEventListener('change', function(e) {
-                e.stopPropagation();
-                const orderId = this.dataset.id;
-                const status = this.value;
-                if (status) {
-                    changeOrderStatus(orderId, status);
-                }
-            });
-        });
-
-        const cards = container.querySelectorAll('.order-card');
-        cards.forEach(function(card) {
-            card.addEventListener('click', function(e) {
-                if (e.target.closest('.status-select')) return;
-                const id = this.dataset.id;
-                const itemsContainer = document.getElementById('items-' + id);
-                if (itemsContainer) {
-                    itemsContainer.classList.toggle('show');
-                }
-            });
-        });
-
-    } catch (err) {
-        console.error('Ошибка загрузки заказов (' + tab + '):', err);
-        container.innerHTML = '<p class="empty-text">Ошибка загрузки заказов</p>';
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// 🖥️ ОТРИСОВКА КАРТОЧКИ ЗАКАЗА
-// ═══════════════════════════════════════════════════════════════════
-
-async function renderOrderCard(order) {
-    const items = await pb.collection('order_items').getList(1, 100, {
-        filter: 'order_id = "' + order.id + '"',
-        sort: 'nomer_pozicii',
-    });
-
-    const filteredItems = items.items.filter(function(item) {
-        const name = (item.mebel || '').toLowerCase();
-        return !name.includes('подушк');
-    });
-
-    const groups = {};
-    filteredItems.forEach(function(item) {
-        const key = item.mebel || 'Без названия';
-        if (!groups[key]) groups[key] = 0;
-        groups[key] += item.kolichestvo || 1;
-    });
-
-    let summaryHtml = '';
-    const groupKeys = Object.keys(groups);
-    if (groupKeys.length === 0) {
-        summaryHtml = 'Нет позиций (все подушки)';
-    } else {
-        groupKeys.forEach(function(name) {
-            const count = groups[name];
-            const deliveryDate = order.data_sdai ? new Date(order.data_sdai).toLocaleDateString() : 'не указана';
-            summaryHtml += '<div class="group-item">';
-            summaryHtml += '<span>' + name + '</span>';
-            summaryHtml += '<span><span class="count">' + count + '</span> шт. | 📅 ' + deliveryDate + '</span>';
-            summaryHtml += '</div>';
-        });
-    }
-
-    const statusMap = {
-        'новый': { label: '🆕 Новый', class: 'new' },
-        'в_столярке': { label: '🛠 В работе', class: 'active' },
-        'чертеж_готов': { label: '📐 Чертёж готов', class: 'waiting' },
-        'столярка_готова': { label: '✅ Готово', class: 'done' },
-        'у_конструктора': { label: '↩️ У конструктора', class: 'constructor' },
-    };
-    const statusInfo = statusMap[order.stats] || { label: order.stats || 'новый', class: '' };
-
-    const statusOptions = [
-        { value: 'новый', label: '🆕 Новый' },
-        { value: 'в_столярке', label: '🛠 Взять в работу' },
-        { value: 'чертеж_готов', label: '📐 Чертёж готов' },
-        { value: 'столярка_готова', label: '✅ Готово' },
-        { value: 'у_конструктора', label: '↩️ Нет чертежа' },
-    ];
-
-    let statusSelectHtml = '<select class="status-select" data-id="' + order.id + '">';
-    statusSelectHtml += '<option value="">📌 Сменить статус...</option>';
-    statusOptions.forEach(function(opt) {
-        const selected = opt.value === order.stats ? 'selected' : '';
-        statusSelectHtml += '<option value="' + opt.value + '" ' + selected + '>' + opt.label + '</option>';
-    });
-    statusSelectHtml += '</select>';
-
-    const deliveryDate = order.data_sdai ? new Date(order.data_sdai).toLocaleDateString() : 'не указана';
-    const createdDate = new Date(order.created).toLocaleDateString();
-
-    let itemsHtml = '';
-    filteredItems.forEach(function(item) {
-        let detail = '';
-        if (item.tkan) detail += 'Ткань: ' + item.tkan;
-        if (item.cvet_opor) {
-            if (detail) detail += ' | ';
-            detail += 'Цвет опор: ' + item.cvet_opor;
-        }
-        if (item.otdelka) {
-            if (detail) detail += ' | ';
-            detail += 'Отделка: ' + item.otdelka;
-        }
-        if (item.kolichestvo) {
-            if (detail) detail += ' | ';
-            detail += 'Количество: ' + item.kolichestvo;
-        }
-        itemsHtml += '<div class="item-row">';
-        itemsHtml += '<span class="item-name">' + (item.mebel || 'Без названия') + '</span>';
-        itemsHtml += '<span class="item-detail">' + detail + '</span>';
-        itemsHtml += '</div>';
-    });
-
-    if (!itemsHtml) itemsHtml = 'Нет позиций';
-
-    const borderColor = order.stats === 'столярка_готова' ? 'border-left-color: #22c55e;' : '';
-
-    return '<div class="order-card" data-id="' + order.id + '" style="' + borderColor + '">' +
-        '<div class="order-header">' +
-            '<span class="order-number">Партия #' + order.nomer_partii + '</span>' +
-            '<span class="order-status ' + statusInfo.class + '">' + statusInfo.label + '</span>' +
-        '</div>' +
-        '<div class="order-client">👤 Клиент: ' + (order.klient || 'Не указан') + '</div>' +
-        '<div class="order-meta">' +
-            '<span>📅 Сдача: ' + deliveryDate + '</span>' +
-            '<span>📅 Создан: ' + createdDate + '</span>' +
-            '<span>📦 Позиций: ' + filteredItems.length + '</span>' +
-            (order.njna_razrabotka ? ' | 🔨 Разработка' : '') +
-        '</div>' +
-        '<div class="order-items-group">' +
-            '📋 Сводка по позициям:<br>' +
-            summaryHtml +
-        '</div>' +
-        '<div id="items-' + order.id + '" class="items-list">' +
-            itemsHtml +
-        '</div>' +
-        '<div class="order-actions">' +
-            statusSelectHtml +
-        '</div>' +
-        '<div class="order-date" style="margin-top:4px;">' +
-            (order.kommentarii ? '💬 ' + order.kommentarii : '') +
-        '</div>' +
-    '</div>';
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// 📌 СМЕНА СТАТУСА ЗАКАЗА (с автообновлением "Все позиции")
-// ═══════════════════════════════════════════════════════════════════
-
-async function changeOrderStatus(orderId, newStatus) {
-    if (!newStatus || !orderId) {
-        showMessage('❌ Ошибка: не указан ID заказа или статус', 'error');
-        return;
-    }
-
-    try {
-        console.log('🔄 Меняем статус заказа ' + orderId + ' на "' + newStatus + '"');
-        
-        await pb.collection('orders').update(orderId, {
-            stats: newStatus,
-        });
-        
-        showMessage('✅ Статус заказа изменён на "' + newStatus + '"', 'success');
-        
-        const activeTab = document.querySelector('.tab-btn.active');
-        if (activeTab) {
-            const tab = activeTab.dataset.tab;
-            if (tab === 'all') {
-                // Если активна вкладка "Все позиции" — перезагружаем список
-                const loadBtn = document.getElementById('loadAllItemsBtn');
-                if (loadBtn) {
-                    loadBtn.click();
-                }
-            } else {
-                loadTab(tab);
-            }
-        }
-    } catch (err) {
-        console.error('Ошибка смены статуса:', err);
-        showMessage('❌ Ошибка смены статуса: ' + (err.message || 'Неизвестная ошибка'), 'error');
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// 📋 ВСЕ ПОЗИЦИИ (ВКЛАДКА)
-// ═══════════════════════════════════════════════════════════════════
-
-document.getElementById('loadAllItemsBtn').addEventListener('click', async function() {
-    const container = document.getElementById('ordersListAll');
-    container.innerHTML = '<p class="empty-text">Загрузка...</p>';
-    
-    try {
+        // 1. Получаем все заказы
         const orders = await pb.collection('orders').getList(1, 200, {
             sort: '+nomer_partii',
             expand: 'menedzer_id',
@@ -369,6 +137,7 @@ document.getElementById('loadAllItemsBtn').addEventListener('click', async funct
             return;
         }
 
+        // 2. Собираем все позиции из всех заказов
         let allItems = [];
 
         for (const order of orders.items) {
@@ -377,17 +146,21 @@ document.getElementById('loadAllItemsBtn').addEventListener('click', async funct
                 sort: 'nomer_pozicii',
             });
 
+            // Фильтруем подушки
             const filteredItems = items.items.filter(function(item) {
                 const name = (item.mebel || '').toLowerCase();
                 return !name.includes('подушк');
             });
 
+            // Разворачиваем количество и добавляем номер позиции внутри заказа
             let positionCounter = 0;
             filteredItems.forEach(function(item) {
                 const count = item.kolichestvo || 1;
                 for (let i = 0; i < count; i++) {
                     positionCounter++;
                     allItems.push({
+                        id: item.id,
+                        orderId: order.id,
                         orderNumber: order.nomer_partii,
                         positionNumber: positionCounter,
                         fullNumber: order.nomer_partii + '/' + positionCounter,
@@ -397,6 +170,7 @@ document.getElementById('loadAllItemsBtn').addEventListener('click', async funct
                         finish: item.otdelka || '',
                         deliveryDate: order.data_sdai ? new Date(order.data_sdai).toLocaleDateString() : 'не указана',
                         status: order.stats || 'новый',
+                        isDevelopment: order.njna_razrabotka || false,
                     });
                 }
             });
@@ -407,22 +181,71 @@ document.getElementById('loadAllItemsBtn').addEventListener('click', async funct
             return;
         }
 
+        // 3. Фильтруем по вкладке
+        let filteredItems = [];
+        if (tab === 'all') {
+            filteredItems = allItems;
+        } else if (tab === 'development') {
+            filteredItems = allItems.filter(function(item) {
+                return item.status === 'у_конструктора';
+            });
+        } else if (tab === 'active') {
+            filteredItems = allItems.filter(function(item) {
+                return item.status === 'в_столярке';
+            });
+        } else if (tab === 'completed') {
+            filteredItems = allItems.filter(function(item) {
+                return item.status === 'столярка_готова';
+            });
+        }
+
+        // 4. Применяем фильтр по названию (если есть)
+        if (state.filterText && tab === 'all') {
+            const lowerFilter = state.filterText.toLowerCase();
+            filteredItems = filteredItems.filter(function(item) {
+                return item.name.toLowerCase().includes(lowerFilter);
+            });
+        }
+
+        if (filteredItems.length === 0) {
+            container.innerHTML = '<p class="empty-text">Нет позиций</p>';
+            return;
+        }
+
+        // 5. Выводим список
         const statusMap = {
             'новый': { label: '🆕 Новый', class: 'new' },
             'в_столярке': { label: '🛠 В работе', class: 'active' },
-            'чертеж_готов': { label: '📐 Чертёж готов', class: 'waiting' },
             'столярка_готова': { label: '✅ Готово', class: 'done' },
             'у_конструктора': { label: '↩️ У конструктора', class: 'constructor' },
         };
 
-        let html = '<div class="all-items-list">' +
+        // Доступные статусы для смены (без чертеж_готов)
+        const statusOptions = [
+            { value: 'новый', label: '🆕 Новый' },
+            { value: 'у_конструктора', label: '↩️ У конструктора' },
+            { value: 'в_столярке', label: '🛠 Взять в работу' },
+            { value: 'столярка_готова', label: '✅ Готово' },
+        ];
+
+        // Фильтр (только для вкладки "Все позиции")
+        let filterHtml = '';
+        if (tab === 'all') {
+            filterHtml = `
+                <div class="filter-container">
+                    <input type="text" id="allFilterInput" placeholder="🔍 Фильтр по названию мебели..." value="${state.filterText}">
+                </div>
+            `;
+        }
+
+        let html = filterHtml + '<div class="all-items-list">' +
             '<div class="list-header">' +
                 '<span class="item-number">№</span>' +
                 '<span class="item-name">Наименование</span>' +
                 '<span class="item-detail">Детали | 📅 Сдача | Статус</span>' +
             '</div>';
 
-        allItems.forEach(function(item) {
+        filteredItems.forEach(function(item) {
             const statusInfo = statusMap[item.status] || { label: item.status, class: '' };
             let details = '';
             if (item.fabric) details += 'Ткань: ' + item.fabric;
@@ -435,12 +258,20 @@ document.getElementById('loadAllItemsBtn').addEventListener('click', async funct
                 details += 'Отделка: ' + item.finish;
             }
 
+            // Выпадающий список статусов
+            let statusSelectHtml = '<select class="status-select" data-order-id="' + item.orderId + '" data-item-id="' + item.id + '">';
+            statusOptions.forEach(function(opt) {
+                const selected = opt.value === item.status ? 'selected' : '';
+                statusSelectHtml += '<option value="' + opt.value + '" ' + selected + '>' + opt.label + '</option>';
+            });
+            statusSelectHtml += '</select>';
+
             html += '<div class="item-row">' +
                 '<span class="item-number">' + item.fullNumber + '</span>' +
                 '<span class="item-name">' + item.name + '</span>' +
                 '<span class="item-detail">' +
                     (details ? details + ' | ' : '') + '📅 ' + item.deliveryDate +
-                    '<span class="item-status ' + statusInfo.class + '">' + statusInfo.label + '</span>' +
+                    ' ' + statusSelectHtml +
                 '</span>' +
             '</div>';
         });
@@ -448,11 +279,65 @@ document.getElementById('loadAllItemsBtn').addEventListener('click', async funct
         html += '</div>';
         container.innerHTML = html;
 
+        // Обработчики для фильтра
+        const filterInput = document.getElementById('allFilterInput');
+        if (filterInput) {
+            filterInput.addEventListener('input', function() {
+                state.filterText = this.value.trim();
+                loadTab('all');
+            });
+        }
+
+        // Обработчики для смены статуса
+        const selects = container.querySelectorAll('.status-select');
+        selects.forEach(function(select) {
+            select.addEventListener('change', function(e) {
+                e.stopPropagation();
+                const orderId = this.dataset.orderId;
+                const itemId = this.dataset.itemId;
+                const newStatus = this.value;
+                if (newStatus) {
+                    changeItemStatus(orderId, itemId, newStatus);
+                }
+            });
+        });
+
     } catch (err) {
-        console.error('Ошибка загрузки позиций:', err);
-        container.innerHTML = '<p class="empty-text">❌ Ошибка загрузки: ' + (err.message || 'Неизвестная ошибка') + '</p>';
+        console.error('Ошибка загрузки позиций (' + tab + '):', err);
+        container.innerHTML = '<p class="empty-text">Ошибка загрузки позиций</p>';
     }
-});
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 📌 СМЕНА СТАТУСА ПОЗИЦИИ (меняет статус всего заказа)
+// ═══════════════════════════════════════════════════════════════════
+
+async function changeItemStatus(orderId, itemId, newStatus) {
+    if (!newStatus || !orderId) {
+        showMessage('❌ Ошибка: не указан статус', 'error');
+        return;
+    }
+
+    try {
+        console.log('🔄 Меняем статус заказа ' + orderId + ' на "' + newStatus + '"');
+        
+        // Меняем статус всего заказа
+        await pb.collection('orders').update(orderId, {
+            stats: newStatus,
+        });
+        
+        showMessage('✅ Статус заказа изменён на "' + newStatus + '"', 'success');
+        
+        // Перезагружаем текущую вкладку
+        const activeTab = document.querySelector('.tab-btn.active');
+        if (activeTab) {
+            loadTab(activeTab.dataset.tab);
+        }
+    } catch (err) {
+        console.error('Ошибка смены статуса:', err);
+        showMessage('❌ Ошибка смены статуса: ' + (err.message || 'Неизвестная ошибка'), 'error');
+    }
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // 💬 СООБЩЕНИЯ
