@@ -153,7 +153,7 @@ async function loadTab(tab) {
 
     switch (tab) {
         case 'new':
-            filter = `stats = "Insuik"`;
+            filter = `stats = "новый"`;
             break;
         case 'active':
             filter = `stats = "в_столярке" || stats = "чертеж_готов"`;
@@ -256,7 +256,7 @@ async function renderOrderCard(order) {
     if (!summaryHtml) summaryHtml = 'Нет позиций (все подушки)';
 
     const statusMap = {
-        'Insuik': { label: '🆕 Новый', class: 'insuik' },
+        'новый': { label: '🆕 Новый', class: 'insuik' },
         'в_столярке': { label: '🛠 В работе', class: 'active' },
         'чертеж_готов': { label: '📐 Чертёж готов', class: 'waiting' },
         'столярка_готова': { label: '✅ Готово', class: 'done' },
@@ -265,7 +265,7 @@ async function renderOrderCard(order) {
     const statusInfo = statusMap[order.stats] || { label: order.stats || 'новый', class: '' };
 
     let actionsHtml = '';
-    if (order.stats === 'в_столярке' || order.stats === 'чертеж_готов' || order.stats === 'Insuik') {
+    if (order.stats === 'в_столярке' || order.stats === 'чертеж_готов' || order.stats === 'новый') {
         actionsHtml = `
             <button class="btn btn-success btn-sm btn-status" data-id="${order.id}" data-status="столярка_готова">✅ Готово</button>
             <button class="btn btn-danger btn-sm btn-status" data-id="${order.id}" data-status="у_конструктора">↩️ Нет чертежа</button>
