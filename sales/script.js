@@ -265,10 +265,6 @@ async function openOrderForEdit(orderId) {
 
         // Загружаем позиции
         state.items = items.items.map(function(item) {
-            // Получаем количество единиц из item_units
-            let totalQuantity = 0;
-            // Мы не можем синхронно получить количество, поэтому используем запрос
-            // Временно ставим 1, но ниже мы обновим
             return {
                 id: item.id,
                 name: item.mebel || '',
@@ -278,6 +274,7 @@ async function openOrderForEdit(orderId) {
                 quantity: item.kolichestvo || 1,
                 komplektnost: item.komplektnost || '',
                 podushki: item.kolichestvo_podushek || '',
+                isDevelopment: order.njna_razrabotka || false,
             };
         });
 
@@ -295,6 +292,17 @@ async function openOrderForEdit(orderId) {
 
         state.currentOrderId = orderId;
         renderItems();
+
+        // Переключаем режим разработки, если нужно
+        if (order.njna_razrabotka) {
+            document.getElementById('needsDevelopment').checked = true;
+            document.getElementById('furnitureSearch').style.display = 'none';
+            document.getElementById('furnitureManual').style.display = 'block';
+        } else {
+            document.getElementById('needsDevelopment').checked = false;
+            document.getElementById('furnitureSearch').style.display = 'block';
+            document.getElementById('furnitureManual').style.display = 'none';
+        }
 
         switchTab('newOrder');
         document.querySelector('#tabNewOrder h2').textContent = '✏️ Редактирование заказа #' + order.nomer_partii;
