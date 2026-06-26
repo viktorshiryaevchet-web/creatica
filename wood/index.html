@@ -14,6 +14,7 @@
         <div id="authScreen">
             <div class="card">
                 <h1>🔐 Вход в систему</h1>
+                <p class="subtitle">Столярный цех</p>
                 <div class="form-group">
                     <label>Email:</label>
                     <input type="email" id="loginEmail" placeholder="stolyar@example.com">
@@ -22,7 +23,7 @@
                     <label>Пароль:</label>
                     <input type="password" id="loginPassword" placeholder="******">
                 </div>
-                <button id="loginBtn" class="btn btn-primary" style="width:100%;">Войти</button>
+                <button id="loginBtn" class="btn btn-primary">Войти</button>
                 <div id="loginMessage" class="message"></div>
             </div>
         </div>
@@ -31,35 +32,38 @@
         <div id="mainScreen" style="display:none;">
 
             <!-- Шапка -->
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <div class="header">
                 <h1>🔨 Столярный цех</h1>
                 <div>
                     <span id="userNameDisplay" style="font-weight:600; margin-right:16px;"></span>
-                    <button id="logoutBtn" class="btn btn-danger" style="padding:8px 16px;">Выйти</button>
+                    <button id="logoutBtn" class="btn btn-danger btn-sm">Выйти</button>
+                </div>
+            </div>
+
+            <!-- ПОИСК И ФИЛЬТРЫ -->
+            <div class="card" style="padding:16px;">
+                <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+                    <input type="text" id="searchInput" placeholder="🔍 Поиск по номеру или клиенту..." style="flex:1; min-width:200px; padding:10px 14px; border:1px solid #ddd; border-radius:8px; font-size:14px;">
+                    <label style="font-size:14px; display:flex; align-items:center; gap:6px;">
+                        <input type="checkbox" id="showCompleted"> Показывать завершённые
+                    </label>
+                    <button id="resetFiltersBtn" class="btn btn-secondary btn-sm">Сбросить</button>
                 </div>
             </div>
 
             <!-- Вкладки -->
             <div class="tabs">
-                <button class="tab-btn active" data-tab="active">🛠 В работе</button>
+                <button class="tab-btn active" data-tab="new">🆕 Новые</button>
+                <button class="tab-btn" data-tab="active">🛠 В работе</button>
                 <button class="tab-btn" data-tab="development">📐 Разработка</button>
                 <button class="tab-btn" data-tab="completed">✅ Готово</button>
             </div>
 
-            <!-- ВКЛАДКА: В РАБОТЕ -->
-            <div id="tabActive" class="tab-content active">
-                <div id="ordersListActive"><p class="empty-text">Загрузка...</p></div>
-            </div>
-
-            <!-- ВКЛАДКА: РАЗРАБОТКА -->
-            <div id="tabDevelopment" class="tab-content" style="display:none;">
-                <div id="ordersListDevelopment"><p class="empty-text">Загрузка...</p></div>
-            </div>
-
-            <!-- ВКЛАДКА: ГОТОВО -->
-            <div id="tabCompleted" class="tab-content" style="display:none;">
-                <div id="ordersListCompleted"><p class="empty-text">Загрузка...</p></div>
-            </div>
+            <!-- ВКЛАДКИ С ЗАКАЗАМИ -->
+            <div id="tabNew" class="tab-content active"><div id="ordersListNew"><p class="empty-text">Загрузка...</p></div></div>
+            <div id="tabActive" class="tab-content" style="display:none;"><div id="ordersListActive"><p class="empty-text">Загрузка...</p></div></div>
+            <div id="tabDevelopment" class="tab-content" style="display:none;"><div id="ordersListDevelopment"><p class="empty-text">Загрузка...</p></div></div>
+            <div id="tabCompleted" class="tab-content" style="display:none;"><div id="ordersListCompleted"><p class="empty-text">Загрузка...</p></div></div>
 
         </div>
     </div>
