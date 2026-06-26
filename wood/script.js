@@ -102,7 +102,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         this.classList.add('active');
         document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
-        document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`).style.display = 'block';
+        document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`).style.display = 'block');
         
         if (tab === 'all') {
             // Вкладка "Все позиции" — загружаем по кнопке
@@ -117,48 +117,6 @@ async function loadAllTabs() {
     await loadTab('active');
     await loadTab('development');
     await loadTab('completed');
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// 🔍 ПОИСК И ФИЛЬТРЫ
-// ═══════════════════════════════════════════════════════════════════
-
-const searchInput = document.getElementById('searchInput');
-const partyFilter = document.getElementById('partyFilter');
-const showCompletedCheckbox = document.getElementById('showCompleted');
-const resetFiltersBtn = document.getElementById('resetFiltersBtn');
-
-if (searchInput) {
-    searchInput.addEventListener('input', function() {
-        state.searchQuery = this.value.trim().toLowerCase();
-        loadAllTabs();
-    });
-}
-
-if (partyFilter) {
-    partyFilter.addEventListener('input', function() {
-        state.partyFilter = this.value.trim();
-        loadAllTabs();
-    });
-}
-
-if (showCompletedCheckbox) {
-    showCompletedCheckbox.addEventListener('change', function() {
-        state.showCompleted = this.checked;
-        loadAllTabs();
-    });
-}
-
-if (resetFiltersBtn) {
-    resetFiltersBtn.addEventListener('click', function() {
-        if (searchInput) searchInput.value = '';
-        if (partyFilter) partyFilter.value = '';
-        state.searchQuery = '';
-        state.partyFilter = '';
-        if (showCompletedCheckbox) showCompletedCheckbox.checked = false;
-        state.showCompleted = false;
-        loadAllTabs();
-    });
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -195,12 +153,6 @@ async function loadTab(tab) {
     if (state.searchQuery) {
         const searchFilter = `(LOWER(klient) ~ "${state.searchQuery}" || LOWER(nomer_partii) ~ "${state.searchQuery}")`;
         filter = filter ? `(${filter}) && ${searchFilter}` : searchFilter;
-    }
-
-    // Фильтр по партии
-    if (state.partyFilter) {
-        const partyFilterStr = `LOWER(nomer_partii) ~ "${state.partyFilter}"`;
-        filter = filter ? `(${filter}) && ${partyFilterStr}` : partyFilterStr;
     }
 
     try {
