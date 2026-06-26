@@ -37,7 +37,10 @@ function getDateColor(deliveryDate) {
 
 const state = {
     currentUser: null,
+    searchQuery: '',
+    furnitureFilter: '',
     filterText: '',
+    allFurnitureNames: [],
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -68,7 +71,7 @@ async function loadUserData() {
         userNameDisplay.textContent = state.currentUser.record?.name || state.currentUser.record?.email;
         const activeTab = document.querySelector('.tab-btn.active');
         if (activeTab) {
-            loadTab(activeTab.dataset.tab);
+            await loadTab(activeTab.dataset.tab);
         }
     } catch (err) {
         pb.authStore.clear();
@@ -142,6 +145,41 @@ document.querySelectorAll('.tab-btn').forEach(function(btn) {
 });
 
 // ═══════════════════════════════════════════════════════════════════
+// 🔍 ПОИСК И ФИЛЬТРЫ
+// ═══════════════════════════════════════════════════════════════════
+
+const searchInput = document.getElementById('searchInput');
+const furnitureFilter = document.getElementById('furnitureFilter');
+const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+
+if (searchInput) {
+    searchInput.addEventListener('input', function() {
+        state.searchQuery = this.value.trim().toLowerCase();
+        const activeTab = document.querySelector('.tab-btn.active');
+        if (activeTab) loadTab(activeTab.dataset.tab);
+    });
+}
+
+if (furnitureFilter) {
+    furnitureFilter.addEventListener('change', function() {
+        state.furnitureFilter = this.value;
+        const activeTab = document.querySelector('.tab-btn.active');
+        if (activeTab) loadTab(activeTab.dataset.tab);
+    });
+}
+
+if (resetFiltersBtn) {
+    resetFiltersBtn.addEventListener('click', function() {
+        if (searchInput) searchInput.value = '';
+        if (furnitureFilter) furnitureFilter.value = '';
+        state.searchQuery = '';
+        state.furnitureFilter = '';
+        const activeTab = document.querySelector('.tab-btn.active');
+        if (activeTab) loadTab(activeTab.dataset.tab);
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // 📦 ЗАГРУЗКА ПОЗИЦИЙ ПО ВКЛАДКАМ
 // ═══════════════════════════════════════════════════════════════════
 
@@ -152,8 +190,9 @@ async function loadTab(tab) {
     container.innerHTML = '<p class="empty-text">Загрузка...</p>';
 
     try {
+        // Загружаем заказы с сортировкой по дате сдачи (ближайшая сверху)
         const orders = await pb.collection('orders').getList(1, 200, {
-            sort: '+nomer_partii',
+            sort: '+data_sdai, +created',
             expand: 'menedzer_id',
         });
 
@@ -224,9 +263,13 @@ async function loadTab(tab) {
             return;
         }
 
+        // ⬇️ ФИЛЬТРАЦИЯ ПО ВКЛАДКЕ ⬇️
         let filteredItems = [];
         if (tab === 'all') {
-            filteredItems = allItems;
+            // Все позиции, КРОМЕ готовых (столярка_готова)
+            filteredItems = allItems.filter(function(item) {
+                return item.status !== 'столярка_готова';
+            });
         } else if (tab === 'development') {
             filteredItems = allItems.filter(function(item) {
                 return item.status === 'у_конструктора';
@@ -236,23 +279,53 @@ async function loadTab(tab) {
                 return item.status === 'в_столярке';
             });
         } else if (tab === 'completed') {
+            // Только готовые
             filteredItems = allItems.filter(function(item) {
                 return item.status === 'столярка_готова';
             });
         }
 
-        if (state.filterText && tab === 'all') {
-            const lowerFilter = state.filterText.toLowerCase();
+        // ⬇️ ФИЛЬТР ПО НАЗВАНИЮ МЕБЕЛИ ⬇️
+        if (state.furnitureFilter) {
             filteredItems = filteredItems.filter(function(item) {
-                return item.name.toLowerCase().includes(lowerFilter);
+                return item.name === state.furnitureFilter;
             });
         }
+
+        // ⬇️ ПОИСК ПО НОМЕРУ ИЛИ КЛИЕНТУ ⬇️
+        if (state.searchQuery) {
+            const lowerQuery = state.searchQuery;
+            filteredItems = filteredItems.filter(function(item) {
+                return item.name.toLowerCase().includes(lowerQuery) || 
+                       String(item.orderNumber).includes(lowerQuery);
+            });
+        }
+
+        // ⬇️ СОРТИРОВКА ПО ДАТЕ (ближайшая сверху) ⬇️
+        filteredItems.sort(function(a, b) {
+            if (!a.deliveryDateRaw) return 1;
+            if (!b.deliveryDateRaw) return -1;
+            return new Date(a.deliveryDateRaw) - new Date(b.deliveryDateRaw);
+        });
 
         if (filteredItems.length === 0) {
             container.innerHTML = '<p class="empty-text">Нет позиций</p>';
             return;
         }
 
+        // ⬇️ ОБНОВЛЯЕМ ВЫПАДАЮЩИЙ СПИСОК ИЗДЕЛИЙ ⬇️
+        const uniqueNames = [...new Set(filteredItems.map(function(item) { return item.name; }).filter(Boolean))].sort();
+        const select = document.getElementById('furnitureFilter');
+        if (select) {
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">Все изделия</option>';
+            uniqueNames.forEach(function(name) {
+                const selected = name === currentValue ? 'selected' : '';
+                select.innerHTML += '<option value="' + name + '" ' + selected + '>' + name + '</option>';
+            });
+        }
+
+        // ⬇️ ОТОБРАЖЕНИЕ ⬇️
         const statusMap = {
             'новый': { label: '🆕 Новый', class: 'new' },
             'в_столярке': { label: '🛠 В работе', class: 'active' },
@@ -271,7 +344,7 @@ async function loadTab(tab) {
         if (tab === 'all') {
             filterHtml = `
                 <div class="filter-container">
-                    <input type="text" id="allFilterInput" placeholder="🔍 Фильтр по названию мебели..." value="${state.filterText}">
+                    <input type="text" id="allFilterInput" placeholder="🔍 Фильтр по названию мебели..." value="${state.filterText || ''}">
                 </div>
             `;
         }
@@ -296,7 +369,6 @@ async function loadTab(tab) {
                 details += 'Отделка: ' + item.finish;
             }
 
-            // Подсветка даты
             const dateColorClass = getDateColor(item.deliveryDateRaw);
             const deliveryDisplay = item.deliveryDate || 'не указана';
 
@@ -320,9 +392,9 @@ async function loadTab(tab) {
         html += '</div>';
         container.innerHTML = html;
 
-        const filterInput = document.getElementById('allFilterInput');
-        if (filterInput) {
-            filterInput.addEventListener('input', function() {
+        const allFilterInput = document.getElementById('allFilterInput');
+        if (allFilterInput) {
+            allFilterInput.addEventListener('input', function() {
                 state.filterText = this.value.trim();
                 loadTab('all');
             });
