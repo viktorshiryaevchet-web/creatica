@@ -1,8 +1,10 @@
 // ═══════════════════════════════════════════════════════════════════
-// 📦 ПОДКЛЮЧЕНИЕ К POCKETBASE (HTTPS)
+// 📦 ПОДКЛЮЧЕНИЕ К POCKETBASE (Отдел продаж)
 // ═══════════════════════════════════════════════════════════════════
 
-const pb = new PocketBase('https://creatica.duckdns.org');
+// Используем уникальное хранилище для отдела продаж
+const authStore = new LocalAuthStore('creatica_sales_auth');
+const pb = new PocketBase('https://creatica.duckdns.org', authStore);
 pb.autoCancellation(false);
 
 // ═══════════════════════════════════════════════════════════════════
@@ -546,7 +548,7 @@ function editItem(index) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// ✅ СОЗДАНИЕ / ОБНОВЛЕНИЕ ЗАКАЗА (с загрузкой файла)
+// ✅ СОЗДАНИЕ / ОБНОВЛЕНИЕ ЗАКАЗА
 // ═══════════════════════════════════════════════════════════════════
 
 document.getElementById('createOrderBtn').addEventListener('click', async function() {
@@ -580,14 +582,12 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
                 stats: 'новый',
             };
 
-            // Если файл загружен, добавляем его
             if (file) {
                 const formData = new FormData();
                 formData.append('file', file);
                 await pb.collection('orders').update(state.currentOrderId, formData);
             }
-            
-            // Обновляем остальные поля
+
             await pb.collection('orders').update(state.currentOrderId, updateData);
 
             const oldItems = await pb.collection('order_items').getList(1, 100, {
@@ -631,7 +631,6 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
                 }
             }
 
-            // Создаём заказ через FormData, чтобы прикрепить файл
             const formData = new FormData();
             formData.append('nomer_partii', nextOrderNumber);
             formData.append('menedzer', state.currentUser.record.name || state.currentUser.record.email);
@@ -666,7 +665,6 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
             clearOrderForm();
             document.querySelector('#tabNewOrder h2').textContent = '➕ Новый заказ';
             document.getElementById('createOrderBtn').textContent = '✅ Создать заказ';
-            // Очищаем поле файла
             fileInput.value = '';
             loadMyOrders();
         }
