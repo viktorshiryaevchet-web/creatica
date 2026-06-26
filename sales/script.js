@@ -110,7 +110,7 @@ async function loadCatalog() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 📦 ЗАГРУЗКА МОИХ ЗАКАЗОВ (с исправленными статусами)
+// 📦 ЗАГРУЗКА МОИХ ЗАКАЗОВ
 // ═══════════════════════════════════════════════════════════════════
 
 async function loadMyOrders() {
@@ -243,7 +243,7 @@ async function deleteOrder(orderId) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// ✏️ ОТКРЫТИЕ ЗАКАЗА ДЛЯ РЕДАКТИРОВАНИЯ
+// ✏️ ОТКРЫТИЕ ЗАКАЗА ДЛЯ РЕДАКТИРОВАНИЯ (ИСПРАВЛЕНО)
 // ═══════════════════════════════════════════════════════════════════
 
 async function openOrderForEdit(orderId) {
@@ -257,23 +257,41 @@ async function openOrderForEdit(orderId) {
             sort: 'nomer_pozicii',
         });
 
+        // Заполняем поля формы данными заказа
         document.getElementById('clientName').value = order.klient || '';
         document.getElementById('deliveryDate').value = order.data_sdai || '';
         document.getElementById('orderComment').value = order.kommentarii || '';
         document.getElementById('needsDevelopment').checked = order.njna_razrabotka || false;
 
+        // Загружаем позиции
         state.items = items.items.map(function(item) {
+            // Получаем количество единиц из item_units
+            let totalQuantity = 0;
+            // Мы не можем синхронно получить количество, поэтому используем запрос
+            // Временно ставим 1, но ниже мы обновим
             return {
                 id: item.id,
                 name: item.mebel || '',
                 fabric: item.tkan || 'Не указана',
                 color: item.cvet_opor || '',
                 finish: item.otdelka || 'Не указана',
-                quantity: 1,
+                quantity: item.kolichestvo || 1,
                 komplektnost: item.komplektnost || '',
                 podushki: item.kolichestvo_podushek || '',
             };
         });
+
+        // Получаем реальное количество единиц для каждой позиции
+        for (let i = 0; i < state.items.length; i++) {
+            try {
+                const units = await pb.collection('item_units').getList(1, 100, {
+                    filter: 'order_item_id = "' + state.items[i].id + '"',
+                });
+                state.items[i].quantity = units.items.length || 1;
+            } catch (e) {
+                state.items[i].quantity = 1;
+            }
+        }
 
         state.currentOrderId = orderId;
         renderItems();
@@ -597,7 +615,7 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
                 data_sdai: deliveryDate || null,
                 kommentarii: comment || '',
                 njna_razrabotka: needsDevelopment,
-                stats: 'новый',
+                stats: needsDevelopment ? 'у_конструктора' : 'новый',
             };
 
             if (file) {
@@ -637,7 +655,7 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
                 for (let j = 0; j < item.quantity; j++) {
                     await pb.collection('item_units').create({
                         order_item_id: orderItem.id,
-                        status: 'новый',
+                        status: needsDevelopment ? 'у_конструктора' : 'новый',
                         number: j + 1,
                     });
                 }
@@ -648,6 +666,7 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
             switchTab('myOrders');
 
         } else {
+            // ✅ СОЗДАНИЕ НОВОГО ЗАКАЗА
             const allOrdersByNumber = await pb.collection('orders').getList(1, 1, {
                 sort: '-nomer_partii',
             });
@@ -669,6 +688,7 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
             formData.append('njna_razrabotka', needsDevelopment);
             formData.append('kommentarii', comment || '');
             formData.append('data_sdai', deliveryDate || null);
+            // ⬇️ ВАЖНО: если галочка стоит — статус "у_конструктора"
             formData.append('stats', needsDevelopment ? 'у_конструктора' : 'новый');
             if (file) {
                 formData.append('file', file);
@@ -692,7 +712,7 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
                 for (let j = 0; j < item.quantity; j++) {
                     await pb.collection('item_units').create({
                         order_item_id: orderItem.id,
-                        status: 'новый',
+                        status: needsDevelopment ? 'у_конструктора' : 'новый',
                         number: j + 1,
                     });
                 }
