@@ -346,7 +346,7 @@ async function changeItemStatus(unitId, newStatus) {
             status: newStatus,
         });
         
-        // 3. Обновляем статус заказа в orders.stats
+        // 3. ⬇️ ВАЖНО: обновляем статус заказа в orders.stats ⬇️
         await pb.collection('orders').update(orderId, {
             stats: newStatus,
         });
