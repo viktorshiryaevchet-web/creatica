@@ -12,6 +12,7 @@ pb.autoCancellation(false);
 const state = {
     currentUser: null,
     searchQuery: '',
+    partyFilter: '',
     showCompleted: false,
 };
 
@@ -118,11 +119,17 @@ async function loadAllTabs() {
 // ═══════════════════════════════════════════════════════════════════
 
 const searchInput = document.getElementById('searchInput');
+const partyFilter = document.getElementById('partyFilter');
 const showCompletedCheckbox = document.getElementById('showCompleted');
 const resetFiltersBtn = document.getElementById('resetFiltersBtn');
 
 searchInput.addEventListener('input', function() {
     state.searchQuery = this.value.trim().toLowerCase();
+    loadAllTabs();
+});
+
+partyFilter.addEventListener('input', function() {
+    state.partyFilter = this.value.trim();
     loadAllTabs();
 });
 
@@ -133,7 +140,9 @@ showCompletedCheckbox.addEventListener('change', function() {
 
 resetFiltersBtn.addEventListener('click', function() {
     searchInput.value = '';
+    partyFilter.value = '';
     state.searchQuery = '';
+    state.partyFilter = '';
     showCompletedCheckbox.checked = false;
     state.showCompleted = false;
     loadAllTabs();
@@ -153,13 +162,13 @@ async function loadTab(tab) {
 
     switch (tab) {
         case 'new':
-            filter = `njna_razrabotka = false`;
+            filter = `nina_razrabotka = false`;
             break;
         case 'active':
             filter = `stats = "в_столярке" || stats = "чертеж_готов"`;
             break;
         case 'development':
-            filter = `njna_razrabotka = true`;
+            filter = `nina_razrabotka = true`;
             break;
         case 'completed':
             filter = `stats = "столярка_готова"`;
@@ -169,10 +178,16 @@ async function loadTab(tab) {
             filter = '';
     }
 
-    // Поиск
+    // Поиск по клиенту или номеру
     if (state.searchQuery) {
         const searchFilter = `(LOWER(klient) ~ "${state.searchQuery}" || LOWER(nomer_partii) ~ "${state.searchQuery}")`;
         filter = filter ? `(${filter}) && ${searchFilter}` : searchFilter;
+    }
+
+    // Фильтр по партии
+    if (state.partyFilter) {
+        const partyFilterStr = `LOWER(nomer_partii) ~ "${state.partyFilter}"`;
+        filter = filter ? `(${filter}) && ${partyFilterStr}` : partyFilterStr;
     }
 
     try {
@@ -194,6 +209,7 @@ async function loadTab(tab) {
         }
         container.innerHTML = html;
 
+        // Обработчики для кнопок смены статуса
         document.querySelectorAll(`#ordersList${tab.charAt(0).toUpperCase() + tab.slice(1)} .btn-status`).forEach(btn => {
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
@@ -203,9 +219,22 @@ async function loadTab(tab) {
             });
         });
 
+        // Обработчики для выбора статуса
+        document.querySelectorAll(`#ordersList${tab.charAt(0).toUpperCase() + tab.slice(1)} .status-select`).forEach(select => {
+            select.addEventListener('change', function(e) {
+                e.stopPropagation();
+                const orderId = this.dataset.id;
+                const status = this.value;
+                if (status) {
+                    changeOrderStatus(orderId, status);
+                }
+            });
+        });
+
+        // Раскрытие позиций
         document.querySelectorAll(`#ordersList${tab.charAt(0).toUpperCase() + tab.slice(1)} .order-card`).forEach(card => {
             card.addEventListener('click', function(e) {
-                if (e.target.closest('.btn-status')) return;
+                if (e.target.closest('.btn-status') || e.target.closest('.status-select')) return;
                 const id = this.dataset.id;
                 const itemsContainer = document.getElementById(`items-${id}`);
                 if (itemsContainer) {
@@ -230,30 +259,64 @@ async function renderOrderCard(order) {
         sort: 'nomer_pozicii',
     });
 
+    // Фильтруем подушки
     const filteredItems = items.items.filter(item => {
         const name = (item.mebel || '').toLowerCase();
         return !name.includes('подушк');
     });
 
-    const groups = {};
+    // Показываем каждую позицию отдельно (разворачиваем количество)
+    const expandedItems = [];
     filteredItems.forEach(item => {
-        const key = item.mebel || 'Без названия';
-        if (!groups[key]) groups[key] = { count: 0, items: [] };
-        groups[key].count += item.kolichestvo || 1;
-        groups[key].items.push(item);
+        const count = item.kolichestvo || 1;
+        for (let i = 0; i < count; i++) {
+            expandedItems.push({
+                ...item,
+                individualNumber: i + 1,
+                mebel: item.mebel || 'Без названия',
+                tkan: item.tkan || '',
+                cvet_opor: item.cvet_opor || '',
+                otdelka: item.otdelka || '',
+            });
+        }
+    });
+
+    // Группируем по полному названию для сводки
+    const groups = {};
+    expandedItems.forEach(item => {
+        const key = item.mebel;
+        if (!groups[key]) groups[key] = 0;
+        groups[key]++;
     });
 
     let summaryHtml = Object.entries(groups)
-        .map(([name, data]) => {
+        .map(([name, count]) => {
             const deliveryDate = order.data_sdai ? new Date(order.data_sdai).toLocaleDateString() : 'не указана';
             return `<div class="group-item">
                 <span>${name}</span>
-                <span><span class="count">${data.count}</span> шт. | 📅 ${deliveryDate}</span>
+                <span><span class="count">${count}</span> шт. | 📅 ${deliveryDate}</span>
             </div>`;
         })
         .join('');
 
     if (!summaryHtml) summaryHtml = 'Нет позиций (все подушки)';
+
+    // Список позиций (каждая отдельно)
+    let itemsHtml = expandedItems.map((item, idx) => {
+        const num = item.individualNumber || idx + 1;
+        return `
+            <div class="item-row">
+                <span class="item-name">${item.mebel}</span>
+                <span class="item-detail">
+                    ${item.tkan ? `Ткань: ${item.tkan}` : ''} 
+                    ${item.cvet_opor ? `| Цвет опор: ${item.cvet_opor}` : ''} 
+                    ${item.otdelka ? `| Отделка: ${item.otdelka}` : ''}
+                </span>
+            </div>
+        `;
+    }).join('');
+
+    if (!itemsHtml) itemsHtml = 'Нет позиций';
 
     const statusMap = {
         'новый': { label: '🆕 Новый', class: 'insuik' },
@@ -264,17 +327,23 @@ async function renderOrderCard(order) {
     };
     const statusInfo = statusMap[order.stats] || { label: order.stats || 'новый', class: '' };
 
-    let actionsHtml = '';
-    if (order.stats === 'в_столярке' || order.stats === 'чертеж_готов' || order.stats === 'новый') {
-        actionsHtml = `
-            <button class="btn btn-success btn-sm btn-status" data-id="${order.id}" data-status="столярка_готова">✅ Готово</button>
-            <button class="btn btn-danger btn-sm btn-status" data-id="${order.id}" data-status="у_конструктора">↩️ Нет чертежа</button>
-        `;
-    } else if (order.stats === 'столярка_готова') {
-        actionsHtml = `<span style="color:#22c55e; font-weight:600;">✅ Завершён</span>`;
-    } else if (order.stats === 'у_конструктора' || order.njna_razrabotka) {
-        actionsHtml = `<span style="color:#f59e0b; font-weight:600;">📐 В разработке</span>`;
-    }
+    // Выпадающий список статусов для столяра
+    const statusOptions = [
+        { value: 'в_столярке', label: '🛠 Взять в работу' },
+        { value: 'чертеж_готов', label: '📐 Чертёж готов' },
+        { value: 'столярка_готова', label: '✅ Готово' },
+        { value: 'у_конструктора', label: '↩️ Нет чертежа' },
+    ];
+
+    let statusSelectHtml = `
+        <select class="status-select" data-id="${order.id}" style="padding:6px 12px; border-radius:8px; border:1px solid #ddd; font-size:13px; background:white; cursor:pointer;">
+            <option value="">📌 Сменить статус...</option>
+    `;
+    statusOptions.forEach(opt => {
+        const selected = opt.value === order.stats ? 'selected' : '';
+        statusSelectHtml += `<option value="${opt.value}" ${selected}>${opt.label}</option>`;
+    });
+    statusSelectHtml += `</select>`;
 
     const deliveryDate = order.data_sdai ? new Date(order.data_sdai).toLocaleDateString() : 'не указана';
     const createdDate = new Date(order.created).toLocaleDateString();
@@ -289,23 +358,18 @@ async function renderOrderCard(order) {
             <div class="order-meta">
                 <span>📅 Сдача: ${deliveryDate}</span>
                 <span>📅 Создан: ${createdDate}</span>
-                <span>📦 Позиций: ${filteredItems.length}</span>
-                ${order.njna_razrabotka ? ' | 🔨 Разработка' : ''}
+                <span>📦 Позиций: ${expandedItems.length}</span>
+                ${order.nina_razrabotka ? ' | 🔨 Разработка' : ''}
             </div>
             <div class="order-items-group">
                 📋 Сводка по позициям:<br>
                 ${summaryHtml}
             </div>
             <div id="items-${order.id}" class="items-list">
-                ${filteredItems.map(item => `
-                    <div class="item-row">
-                        <span class="item-name">${item.mebel || 'Без названия'}</span>
-                        <span class="item-detail">${item.tkan ? `Ткань: ${item.tkan}` : ''} ${item.cvet_opor ? `| Цвет опор: ${item.cvet_opor}` : ''} ${item.otdelka ? `| Отделка: ${item.otdelka}` : ''} | Количество: ${item.kolichestvo || 1}</span>
-                    </div>
-                `).join('')}
+                ${itemsHtml}
             </div>
-            <div class="order-actions">
-                ${actionsHtml}
+            <div class="order-actions" style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; align-items:center;">
+                ${statusSelectHtml}
             </div>
             <div class="order-date" style="margin-top:4px;">
                 ${order.kommentarii ? `💬 ${order.kommentarii}` : ''}
@@ -319,6 +383,7 @@ async function renderOrderCard(order) {
 // ═══════════════════════════════════════════════════════════════════
 
 async function changeOrderStatus(orderId, newStatus) {
+    if (!newStatus) return;
     try {
         await pb.collection('orders').update(orderId, {
             stats: newStatus,
