@@ -313,7 +313,7 @@ async function renderOrderCard(order) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 📌 СМЕНА СТАТУСА ЗАКАЗА
+// 📌 СМЕНА СТАТУСА ЗАКАЗА (с автообновлением "Все позиции")
 // ═══════════════════════════════════════════════════════════════════
 
 async function changeOrderStatus(orderId, newStatus) {
@@ -334,7 +334,13 @@ async function changeOrderStatus(orderId, newStatus) {
         const activeTab = document.querySelector('.tab-btn.active');
         if (activeTab) {
             const tab = activeTab.dataset.tab;
-            if (tab !== 'all') {
+            if (tab === 'all') {
+                // Если активна вкладка "Все позиции" — перезагружаем список
+                const loadBtn = document.getElementById('loadAllItemsBtn');
+                if (loadBtn) {
+                    loadBtn.click();
+                }
+            } else {
                 loadTab(tab);
             }
         }
