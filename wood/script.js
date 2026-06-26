@@ -149,14 +149,18 @@ async function loadTab(tab) {
                 return !name.includes('подушк');
             });
 
-            // ⬇️ РАЗВОРАЧИВАЕМ КОЛИЧЕСТВО ⬇️
             let positionCounter = 0;
-            filteredItems.forEach(function(item) {
-                const count = item.kolichestvo || 1;
-                for (let i = 0; i < count; i++) {
+            for (const item of filteredItems) {
+                // Получаем единицы из item_units
+                const units = await pb.collection('item_units').getList(1, 100, {
+                    filter: 'order_item_id = "' + item.id + '"',
+                    sort: 'number',
+                });
+
+                for (const unit of units.items) {
                     positionCounter++;
                     allItems.push({
-                        id: item.id,
+                        unitId: unit.id,
                         orderId: order.id,
                         orderNumber: order.nomer_partii,
                         positionNumber: positionCounter,
@@ -166,11 +170,11 @@ async function loadTab(tab) {
                         color: item.cvet_opor || '',
                         finish: item.otdelka || '',
                         deliveryDate: order.data_sdai ? new Date(order.data_sdai).toLocaleDateString() : 'не указана',
-                        status: item.status || 'новый',
+                        status: unit.status || 'новый',
                         isDevelopment: order.njna_razrabotka || false,
                     });
                 }
-            });
+            }
         }
 
         if (allItems.length === 0) {
@@ -250,7 +254,7 @@ async function loadTab(tab) {
                 details += 'Отделка: ' + item.finish;
             }
 
-            let statusSelectHtml = '<select class="status-select" data-item-id="' + item.id + '">';
+            let statusSelectHtml = '<select class="status-select" data-unit-id="' + item.unitId + '">';
             statusOptions.forEach(function(opt) {
                 const selected = opt.value === item.status ? 'selected' : '';
                 statusSelectHtml += '<option value="' + opt.value + '" ' + selected + '>' + opt.label + '</option>';
@@ -282,10 +286,10 @@ async function loadTab(tab) {
         selects.forEach(function(select) {
             select.addEventListener('change', function(e) {
                 e.stopPropagation();
-                const itemId = this.dataset.itemId;
+                const unitId = this.dataset.unitId;
                 const newStatus = this.value;
                 if (newStatus) {
-                    changeItemStatus(itemId, newStatus);
+                    changeItemStatus(unitId, newStatus);
                 }
             });
         });
@@ -297,19 +301,19 @@ async function loadTab(tab) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 📌 СМЕНА СТАТУСА ТОЛЬКО У ОДНОЙ ПОЗИЦИИ
+// 📌 СМЕНА СТАТУСА У КОНКРЕТНОЙ ЕДИНИЦЫ
 // ═══════════════════════════════════════════════════════════════════
 
-async function changeItemStatus(itemId, newStatus) {
-    if (!newStatus || !itemId) {
+async function changeItemStatus(unitId, newStatus) {
+    if (!newStatus || !unitId) {
         showMessage('❌ Ошибка: не указан статус', 'error');
         return;
     }
 
     try {
-        console.log('🔄 Меняем статус позиции ' + itemId + ' на "' + newStatus + '"');
+        console.log('🔄 Меняем статус единицы ' + unitId + ' на "' + newStatus + '"');
         
-        await pb.collection('order_items').update(itemId, {
+        await pb.collection('item_units').update(unitId, {
             status: newStatus,
         });
         
