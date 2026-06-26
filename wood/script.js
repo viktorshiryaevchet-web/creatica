@@ -151,24 +151,21 @@ async function loadTab(tab) {
 
             let positionCounter = 0;
             filteredItems.forEach(function(item) {
-                const count = item.kolichestvo || 1;
-                for (let i = 0; i < count; i++) {
-                    positionCounter++;
-                    allItems.push({
-                        id: item.id,
-                        orderId: order.id,
-                        orderNumber: order.nomer_partii,
-                        positionNumber: positionCounter,
-                        fullNumber: order.nomer_partii + '/' + positionCounter,
-                        name: item.mebel || 'Без названия',
-                        fabric: item.tkan || '',
-                        color: item.cvet_opor || '',
-                        finish: item.otdelka || '',
-                        deliveryDate: order.data_sdai ? new Date(order.data_sdai).toLocaleDateString() : 'не указана',
-                        status: order.stats || 'новый',
-                        isDevelopment: order.njna_razrabotka || false,
-                    });
-                }
+                positionCounter++;
+                allItems.push({
+                    id: item.id,
+                    orderId: order.id,
+                    orderNumber: order.nomer_partii,
+                    positionNumber: positionCounter,
+                    fullNumber: order.nomer_partii + '/' + positionCounter,
+                    name: item.mebel || 'Без названия',
+                    fabric: item.tkan || '',
+                    color: item.cvet_opor || '',
+                    finish: item.otdelka || '',
+                    deliveryDate: order.data_sdai ? new Date(order.data_sdai).toLocaleDateString() : 'не указана',
+                    status: item.status || 'новый',
+                    isDevelopment: order.njna_razrabotka || false,
+                });
             });
         }
 
@@ -249,7 +246,7 @@ async function loadTab(tab) {
                 details += 'Отделка: ' + item.finish;
             }
 
-            let statusSelectHtml = '<select class="status-select" data-order-id="' + item.orderId + '" data-item-id="' + item.id + '">';
+            let statusSelectHtml = '<select class="status-select" data-item-id="' + item.id + '">';
             statusOptions.forEach(function(opt) {
                 const selected = opt.value === item.status ? 'selected' : '';
                 statusSelectHtml += '<option value="' + opt.value + '" ' + selected + '>' + opt.label + '</option>';
@@ -281,11 +278,10 @@ async function loadTab(tab) {
         selects.forEach(function(select) {
             select.addEventListener('change', function(e) {
                 e.stopPropagation();
-                const orderId = this.dataset.orderId;
                 const itemId = this.dataset.itemId;
                 const newStatus = this.value;
                 if (newStatus) {
-                    changeItemStatus(orderId, itemId, newStatus);
+                    changeItemStatus(itemId, newStatus);
                 }
             });
         });
@@ -300,20 +296,20 @@ async function loadTab(tab) {
 // 📌 СМЕНА СТАТУСА ПОЗИЦИИ
 // ═══════════════════════════════════════════════════════════════════
 
-async function changeItemStatus(orderId, itemId, newStatus) {
-    if (!newStatus || !orderId) {
+async function changeItemStatus(itemId, newStatus) {
+    if (!newStatus || !itemId) {
         showMessage('❌ Ошибка: не указан статус', 'error');
         return;
     }
 
     try {
-        console.log('🔄 Меняем статус заказа ' + orderId + ' на "' + newStatus + '"');
+        console.log('🔄 Меняем статус позиции ' + itemId + ' на "' + newStatus + '"');
         
-        await pb.collection('orders').update(orderId, {
-            stats: newStatus,
+        await pb.collection('order_items').update(itemId, {
+            status: newStatus,
         });
         
-        showMessage('✅ Статус заказа изменён на "' + newStatus + '"', 'success');
+        showMessage('✅ Статус позиции изменён на "' + newStatus + '"', 'success');
         
         const activeTab = document.querySelector('.tab-btn.active');
         if (activeTab) {
