@@ -2,9 +2,41 @@
 // 📦 ПОДКЛЮЧЕНИЕ К POCKETBASE (Столярный цех)
 // ═══════════════════════════════════════════════════════════════════
 
-// Используем уникальное хранилище для столярного цеха
-const authStore = new LocalAuthStore('creatica_wood_auth');
-const pb = new PocketBase('https://creatica.duckdns.org', authStore);
+// Создаём уникальный ключ для хранилища столярного цеха
+const STORAGE_KEY = 'creatica_wood_auth';
+
+// Создаём кастомное хранилище, которое использует localStorage с уникальным ключом
+const authStore = {
+    save: function(token, model) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ token, model }));
+    },
+    clear: function() {
+        localStorage.removeItem(STORAGE_KEY);
+    },
+    get: function() {
+        try {
+            const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            return data || { token: null, model: null };
+        } catch {
+            return { token: null, model: null };
+        }
+    }
+};
+
+// Загружаем сохранённые данные
+const saved = authStore.get();
+const pb = new PocketBase('https://creatica.duckdns.org');
+
+// Восстанавливаем состояние
+if (saved.token) {
+    pb.authStore.save(saved.token, saved.model);
+}
+
+// Перехватываем изменения, чтобы сохранять в localStorage
+pb.authStore.onChange(function(token, model) {
+    authStore.save(token, model);
+});
+
 pb.autoCancellation(false);
 
 // ═══════════════════════════════════════════════════════════════════
