@@ -153,13 +153,13 @@ async function loadTab(tab) {
 
     switch (tab) {
         case 'new':
-            filter = `stats = "новый"`;
+            filter = `njna_razrabotka = false`;
             break;
         case 'active':
             filter = `stats = "в_столярке" || stats = "чертеж_готов"`;
             break;
         case 'development':
-            filter = `stats = "у_конструктора" || njna_razrabotka = true`;
+            filter = `njna_razrabotka = true`;
             break;
         case 'completed':
             filter = `stats = "столярка_готова"`;
