@@ -1,0 +1,71 @@
+/* =============================================
+   Вкладки
+   ============================================= */
+
+.tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 4px;
+}
+
+.tab-btn {
+    padding: 10px 20px;
+    border: none;
+    background: transparent;
+    font-size: 15px;
+    font-weight: 600;
+    color: #666;
+    cursor: pointer;
+    border-radius: 8px 8px 0 0;
+    transition: all 0.2s;
+}
+
+.tab-btn:hover {
+    background: #f0f2f5;
+    color: #333;
+}
+
+.tab-btn.active {
+    color: #4a90d9;
+    background: #e8f0fe;
+    border-bottom: 3px solid #4a90d9;
+}
+
+.tab-content {
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* =============================================
+   Группировка позиций
+   ============================================= */
+
+.order-items-group {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.order-items-group .group-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.order-items-group .group-item:last-child {
+    border-bottom: none;
+}
+
+.order-items-group .group-item .count {
+    font-weight: 600;
+    color: #4a90d9;
+}
