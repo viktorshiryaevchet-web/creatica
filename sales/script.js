@@ -611,7 +611,7 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
 
             for (let i = 0; i < state.items.length; i++) {
                 const item = state.items[i];
-                await pb.collection('order_items').create({
+                const orderItem = await pb.collection('order_items').create({
                     order_id: state.currentOrderId,
                     mebel: item.name,
                     tkan: item.fabric,
@@ -621,8 +621,16 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
                     komplektnost: item.komplektnost || '',
                     kolichestvo_podushek: item.podushki || '',
                     nomer_pozicii: i + 1,
-                    status: 'новый',
                 });
+
+                // Создаём единицы в item_units
+                for (let j = 0; j < item.quantity; j++) {
+                    await pb.collection('item_units').create({
+                        order_item_id: orderItem.id,
+                        status: 'новый',
+                        number: j + 1,
+                    });
+                }
             }
 
             showMessage('✅ Заказ #' + state.currentOrderId + ' обновлён!', 'success');
@@ -661,7 +669,7 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
 
             for (let i = 0; i < state.items.length; i++) {
                 const item = state.items[i];
-                await pb.collection('order_items').create({
+                const orderItem = await pb.collection('order_items').create({
                     order_id: order.id,
                     mebel: item.name,
                     tkan: item.fabric,
@@ -671,8 +679,16 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
                     komplektnost: item.komplektnost || '',
                     kolichestvo_podushek: item.podushki || '',
                     nomer_pozicii: i + 1,
-                    status: 'новый',
                 });
+
+                // Создаём единицы в item_units
+                for (let j = 0; j < item.quantity; j++) {
+                    await pb.collection('item_units').create({
+                        order_item_id: orderItem.id,
+                        status: 'новый',
+                        number: j + 1,
+                    });
+                }
             }
 
             showMessage('✅ Заказ #' + nextOrderNumber + ' успешно создан!', 'success');
