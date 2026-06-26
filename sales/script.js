@@ -263,7 +263,7 @@ async function openOrderForEdit(orderId) {
                 fabric: item.tkan || 'Не указана',
                 color: item.cvet_opor || '',
                 finish: item.otdelka || 'Не указана',
-                quantity: item.kolichestvo || 1,
+                quantity: 1, // при редактировании мы не знаем точное количество единиц
                 komplektnost: item.komplektnost || '',
                 podushki: item.kolichestvo_podushek || '',
             };
@@ -617,13 +617,11 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
                     tkan: item.fabric,
                     cvet_opor: item.color,
                     otdelka: item.finish,
-                    kolichestvo: item.quantity,
                     komplektnost: item.komplektnost || '',
                     kolichestvo_podushek: item.podushki || '',
                     nomer_pozicii: i + 1,
                 });
 
-                // Создаём единицы в item_units
                 for (let j = 0; j < item.quantity; j++) {
                     await pb.collection('item_units').create({
                         order_item_id: orderItem.id,
@@ -675,13 +673,11 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
                     tkan: item.fabric,
                     cvet_opor: item.color,
                     otdelka: item.finish,
-                    kolichestvo: item.quantity,
                     komplektnost: item.komplektnost || '',
                     kolichestvo_podushek: item.podushki || '',
                     nomer_pozicii: i + 1,
                 });
 
-                // Создаём единицы в item_units
                 for (let j = 0; j < item.quantity; j++) {
                     await pb.collection('item_units').create({
                         order_item_id: orderItem.id,
