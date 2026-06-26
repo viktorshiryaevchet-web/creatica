@@ -50,21 +50,27 @@
                 </div>
             </div>
 
-            <!-- КНОПКА ДЛЯ ЗАГРУЗКИ ВСЕХ ПОЗИЦИЙ -->
-            <div style="margin-bottom:20px;">
-                <button id="loadAllItemsBtn" class="btn btn-primary" style="width:100%; padding:14px; font-size:18px;">
-                    📋 Показать все позиции
-                </button>
+            <!-- ВКЛАДКИ -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="new">🆕 Новые</button>
+                <button class="tab-btn" data-tab="active">🛠 В работе</button>
+                <button class="tab-btn" data-tab="development">📐 Разработка</button>
+                <button class="tab-btn" data-tab="completed">✅ Готово</button>
+                <button class="tab-btn" data-tab="all">📋 Все позиции</button>
             </div>
 
-            <!-- КОНТЕЙНЕР ДЛЯ СПИСКА ПОЗИЦИЙ -->
-            <div id="itemsContainer">
-                <div class="card">
-                    <h2>Все позиции</h2>
-                    <div id="itemsList">
-                        <p class="empty-text">Нажмите кнопку, чтобы загрузить все позиции</p>
-                    </div>
-                </div>
+            <!-- ВКЛАДКИ С ЗАКАЗАМИ -->
+            <div id="tabNew" class="tab-content active"><div id="ordersListNew"><p class="empty-text">Загрузка...</p></div></div>
+            <div id="tabActive" class="tab-content" style="display:none;"><div id="ordersListActive"><p class="empty-text">Загрузка...</p></div></div>
+            <div id="tabDevelopment" class="tab-content" style="display:none;"><div id="ordersListDevelopment"><p class="empty-text">Загрузка...</p></div></div>
+            <div id="tabCompleted" class="tab-content" style="display:none;"><div id="ordersListCompleted"><p class="empty-text">Загрузка...</p></div></div>
+            <div id="tabAll" class="tab-content" style="display:none;"><div id="ordersListAll"><p class="empty-text">Нажмите кнопку ниже</p></div></div>
+
+            <!-- КНОПКА ДЛЯ ВСЕХ ПОЗИЦИЙ (ПОЯВЛЯЕТСЯ ВНУТРИ ВКЛАДКИ) -->
+            <div id="allItemsButtonContainer" style="display:none; margin-bottom:16px;">
+                <button id="loadAllItemsBtn" class="btn btn-primary" style="width:100%; padding:14px; font-size:16px;">
+                    📋 Загрузить все позиции
+                </button>
             </div>
 
         </div>
