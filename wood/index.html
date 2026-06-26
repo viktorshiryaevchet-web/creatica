@@ -46,6 +46,15 @@
                 </div>
             </div>
 
+            <!-- ФИЛЬТРЫ -->
+            <div class="filter-bar">
+                <input type="text" id="searchInput" placeholder="🔍 Поиск по номеру или клиенту..." class="filter-search">
+                <select id="furnitureFilter" class="filter-select">
+                    <option value="">Все изделия</option>
+                </select>
+                <button id="resetFiltersBtn" class="btn btn-secondary btn-sm">Сбросить</button>
+            </div>
+
             <!-- ВКЛАДКИ -->
             <div class="tabs">
                 <button class="tab-btn active" data-tab="all">📋 Все позиции</button>
@@ -54,24 +63,16 @@
                 <button class="tab-btn" data-tab="completed">✅ Готово</button>
             </div>
 
-            <!-- ВКЛАДКА: ВСЕ ПОЗИЦИИ -->
+            <!-- ВКЛАДКИ С ЗАКАЗАМИ -->
             <div id="tabAll" class="tab-content active">
-                <div id="ordersListAll">
-                    <p class="empty-text">Загрузка...</p>
-                </div>
+                <div id="ordersListAll"><p class="empty-text">Загрузка...</p></div>
             </div>
-
-            <!-- ВКЛАДКА: РАЗРАБОТКА -->
             <div id="tabDevelopment" class="tab-content" style="display:none;">
                 <div id="ordersListDevelopment"><p class="empty-text">Загрузка...</p></div>
             </div>
-
-            <!-- ВКЛАДКА: В РАБОТЕ -->
             <div id="tabActive" class="tab-content" style="display:none;">
                 <div id="ordersListActive"><p class="empty-text">Загрузка...</p></div>
             </div>
-
-            <!-- ВКЛАДКА: ГОТОВО -->
             <div id="tabCompleted" class="tab-content" style="display:none;">
                 <div id="ordersListCompleted"><p class="empty-text">Загрузка...</p></div>
             </div>
