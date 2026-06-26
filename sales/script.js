@@ -216,14 +216,17 @@ async function loadMyOrders() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 🗑️ УДАЛЕНИЕ ЗАКАЗА
+// 🗑️ УДАЛЕНИЕ ЗАКАЗА (исправленное)
 // ═══════════════════════════════════════════════════════════════════
 
 async function deleteOrder(orderId) {
     try {
+        // 1. Получаем все order_items этого заказа
         const items = await pb.collection('order_items').getList(1, 100, {
             filter: 'order_id = "' + orderId + '"',
         });
+
+        // 2. Для каждого order_item удаляем связанные item_units
         for (const item of items.items) {
             const units = await pb.collection('item_units').getList(1, 100, {
                 filter: 'order_item_id = "' + item.id + '"',
@@ -231,9 +234,13 @@ async function deleteOrder(orderId) {
             for (const unit of units.items) {
                 await pb.collection('item_units').delete(unit.id);
             }
+            // 3. Удаляем сам order_item
             await pb.collection('order_items').delete(item.id);
         }
+
+        // 4. Удаляем заказ
         await pb.collection('orders').delete(orderId);
+        
         showMessage('✅ Заказ успешно удалён!', 'success');
         loadMyOrders();
     } catch (err) {
