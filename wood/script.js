@@ -149,9 +149,18 @@ async function loadTab(tab) {
                 return !name.includes('подушк');
             });
 
+            // ⬇️ Считаем общее количество позиций в заказе
+            let totalUnitsInOrder = 0;
+            for (const item of filteredItems) {
+                const units = await pb.collection('item_units').getList(1, 100, {
+                    filter: 'order_item_id = "' + item.id + '"',
+                    sort: 'number',
+                });
+                totalUnitsInOrder += units.items.length;
+            }
+
             let positionCounter = 0;
             for (const item of filteredItems) {
-                // Получаем единицы из item_units
                 const units = await pb.collection('item_units').getList(1, 100, {
                     filter: 'order_item_id = "' + item.id + '"',
                     sort: 'number',
@@ -159,12 +168,20 @@ async function loadTab(tab) {
 
                 for (const unit of units.items) {
                     positionCounter++;
+                    let fullNumber;
+                    // ⬇️ Если в заказе всего 1 единица — показываем только номер заказа
+                    if (totalUnitsInOrder === 1) {
+                        fullNumber = String(order.nomer_partii);
+                    } else {
+                        fullNumber = order.nomer_partii + '/' + positionCounter;
+                    }
+                    
                     allItems.push({
                         unitId: unit.id,
                         orderId: order.id,
                         orderNumber: order.nomer_partii,
                         positionNumber: positionCounter,
-                        fullNumber: order.nomer_partii + '/' + positionCounter,
+                        fullNumber: fullNumber,
                         name: item.mebel || 'Без названия',
                         fabric: item.tkan || '',
                         color: item.cvet_opor || '',
