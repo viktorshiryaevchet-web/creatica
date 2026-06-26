@@ -263,7 +263,7 @@ async function openOrderForEdit(orderId) {
                 fabric: item.tkan || 'Не указана',
                 color: item.cvet_opor || '',
                 finish: item.otdelka || 'Не указана',
-                quantity: 1, // при редактировании мы не знаем точное количество единиц
+                quantity: 1,
                 komplektnost: item.komplektnost || '',
                 podushki: item.kolichestvo_podushek || '',
             };
@@ -560,7 +560,7 @@ function editItem(index) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// ✅ СОЗДАНИЕ / ОБНОВЛЕНИЕ ЗАКАЗА
+// ✅ СОЗДАНИЕ / ОБНОВЛЕНИЕ ЗАКАЗА (с правильной нумерацией партий)
 // ═══════════════════════════════════════════════════════════════════
 
 document.getElementById('createOrderBtn').addEventListener('click', async function() {
@@ -637,13 +637,15 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
 
         } else {
             // ✅ СОЗДАНИЕ НОВОГО ЗАКАЗА
-            const allOrders = await pb.collection('orders').getList(1, 1, {
-                sort: '-created',
+
+            // Получаем максимальный номер партии
+            const allOrdersByNumber = await pb.collection('orders').getList(1, 1, {
+                sort: '-nomer_partii',
             });
 
             let nextOrderNumber = 1;
-            if (allOrders.items.length > 0) {
-                const lastOrder = allOrders.items[0];
+            if (allOrdersByNumber.items.length > 0) {
+                const lastOrder = allOrdersByNumber.items[0];
                 const lastNumber = parseInt(lastOrder.nomer_partii);
                 if (!isNaN(lastNumber)) {
                     nextOrderNumber = lastNumber + 1;
