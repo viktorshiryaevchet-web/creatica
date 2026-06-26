@@ -153,7 +153,7 @@ async function loadTab(tab) {
 
     switch (tab) {
         case 'new':
-            filter = `stats = "новый"`;
+            filter = `stats = "Insuik"`;
             break;
         case 'active':
             filter = `stats = "в_столярке" || stats = "чертеж_готов"`;
@@ -169,15 +169,10 @@ async function loadTab(tab) {
             filter = '';
     }
 
-    // Фильтр по завершённым
-    if (!state.showCompleted && tab !== 'completed') {
-        // Показываем только активные (не завершённые)
-        // Уже отфильтровано по статусам
-    }
-
     // Поиск
     if (state.searchQuery) {
-        filter = `(${filter}) && (LOWER(klient) ~ "${state.searchQuery}" || LOWER(nomer_partii) ~ "${state.searchQuery}")`;
+        const searchFilter = `(LOWER(klient) ~ "${state.searchQuery}" || LOWER(nomer_partii) ~ "${state.searchQuery}")`;
+        filter = filter ? `(${filter}) && ${searchFilter}` : searchFilter;
     }
 
     try {
@@ -199,7 +194,6 @@ async function loadTab(tab) {
         }
         container.innerHTML = html;
 
-        // Обработчики кнопок смены статуса
         document.querySelectorAll(`#ordersList${tab.charAt(0).toUpperCase() + tab.slice(1)} .btn-status`).forEach(btn => {
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
@@ -209,7 +203,6 @@ async function loadTab(tab) {
             });
         });
 
-        // Раскрытие позиций
         document.querySelectorAll(`#ordersList${tab.charAt(0).toUpperCase() + tab.slice(1)} .order-card`).forEach(card => {
             card.addEventListener('click', function(e) {
                 if (e.target.closest('.btn-status')) return;
@@ -263,7 +256,7 @@ async function renderOrderCard(order) {
     if (!summaryHtml) summaryHtml = 'Нет позиций (все подушки)';
 
     const statusMap = {
-        'новый': { label: '🆕 Новый', class: 'waiting' },
+        'Insuik': { label: '🆕 Новый', class: 'insuik' },
         'в_столярке': { label: '🛠 В работе', class: 'active' },
         'чертеж_готов': { label: '📐 Чертёж готов', class: 'waiting' },
         'столярка_готова': { label: '✅ Готово', class: 'done' },
@@ -272,22 +265,22 @@ async function renderOrderCard(order) {
     const statusInfo = statusMap[order.stats] || { label: order.stats || 'новый', class: '' };
 
     let actionsHtml = '';
-    if (order.stats === 'в_столярке' || order.stats === 'чертеж_готов' || order.stats === 'новый') {
+    if (order.stats === 'в_столярке' || order.stats === 'чертеж_готов' || order.stats === 'Insuik') {
         actionsHtml = `
             <button class="btn btn-success btn-sm btn-status" data-id="${order.id}" data-status="столярка_готова">✅ Готово</button>
             <button class="btn btn-danger btn-sm btn-status" data-id="${order.id}" data-status="у_конструктора">↩️ Нет чертежа</button>
         `;
     } else if (order.stats === 'столярка_готова') {
-        actionsHtml = `<span style="color:#28a745; font-weight:600;">✅ Завершён</span>`;
+        actionsHtml = `<span style="color:#22c55e; font-weight:600;">✅ Завершён</span>`;
     } else if (order.stats === 'у_конструктора' || order.нужна_разработка) {
-        actionsHtml = `<span style="color:#f0ad4e; font-weight:600;">📐 В разработке</span>`;
+        actionsHtml = `<span style="color:#f59e0b; font-weight:600;">📐 В разработке</span>`;
     }
 
     const deliveryDate = order.data_sdai ? new Date(order.data_sdai).toLocaleDateString() : 'не указана';
     const createdDate = new Date(order.created).toLocaleDateString();
 
     return `
-        <div class="order-card" data-id="${order.id}" style="${order.stats === 'столярка_готова' ? 'border-left-color: #28a745;' : ''}">
+        <div class="order-card" data-id="${order.id}" style="${order.stats === 'столярка_готова' ? 'border-left-color: #22c55e;' : ''}">
             <div class="order-header">
                 <span class="order-number">Партия #${order.nomer_partii}</span>
                 <span class="order-status ${statusInfo.class}">${statusInfo.label}</span>
@@ -306,8 +299,8 @@ async function renderOrderCard(order) {
             <div id="items-${order.id}" class="items-list">
                 ${filteredItems.map(item => `
                     <div class="item-row">
-                        <span>${item.mebel || 'Без названия'}</span>
-                        <span>${item.tkan ? `Ткань: ${item.tkan}` : ''} ${item.cvet_opor ? `| Цвет опор: ${item.cvet_opor}` : ''} ${item.otdelka ? `| Отделка: ${item.otdelka}` : ''} | Количество: ${item.kolichestvo || 1}</span>
+                        <span class="item-name">${item.mebel || 'Без названия'}</span>
+                        <span class="item-detail">${item.tkan ? `Ткань: ${item.tkan}` : ''} ${item.cvet_opor ? `| Цвет опор: ${item.cvet_opor}` : ''} ${item.otdelka ? `| Отделка: ${item.otdelka}` : ''} | Количество: ${item.kolichestvo || 1}</span>
                     </div>
                 `).join('')}
             </div>
