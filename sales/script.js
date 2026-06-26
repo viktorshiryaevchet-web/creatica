@@ -171,7 +171,6 @@ async function loadMyOrders() {
         }
         container.innerHTML = html;
 
-        // Загружаем количество позиций для каждого заказа
         for (const order of orders.items) {
             try {
                 const result = await pb.collection('order_items').getList(1, 1, {
@@ -182,7 +181,6 @@ async function loadMyOrders() {
             } catch (e) {}
         }
 
-        // Обработчики для кнопок
         const editBtns = container.querySelectorAll('.btn-secondary');
         editBtns.forEach(function(btn) {
             btn.addEventListener('click', function(e) {
@@ -623,6 +621,7 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
                     komplektnost: item.komplektnost || '',
                     kolichestvo_podushek: item.podushki || '',
                     nomer_pozicii: i + 1,
+                    status: 'новый',
                 });
             }
 
@@ -653,7 +652,6 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
             formData.append('njna_razrabotka', needsDevelopment);
             formData.append('kommentarii', comment || '');
             formData.append('data_sdai', deliveryDate || null);
-            // ⬇️ ГЛАВНОЕ ИЗМЕНЕНИЕ: если галочка стоит — статус "у_конструктора"
             formData.append('stats', needsDevelopment ? 'у_конструктора' : 'новый');
             if (file) {
                 formData.append('file', file);
@@ -673,6 +671,7 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
                     komplektnost: item.komplektnost || '',
                     kolichestvo_podushek: item.podushki || '',
                     nomer_pozicii: i + 1,
+                    status: 'новый',
                 });
             }
 
