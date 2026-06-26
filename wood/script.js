@@ -39,7 +39,6 @@ const state = {
     currentUser: null,
     searchQuery: '',
     furnitureFilter: '',
-    filterText: '',
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -309,7 +308,7 @@ async function loadTab(tab) {
             return;
         }
 
-        // ⬇️ ОБНОВЛЯЕМ ВЫПАДАЮЩИЙ СПИСОК ИЗДЕЛИЙ ⬇️
+        // Обновляем выпадающий список изделий
         const uniqueNames = [...new Set(filteredItems.map(function(item) { return item.name; }).filter(Boolean))].sort();
         const select = document.getElementById('furnitureFilter');
         if (select) {
@@ -335,16 +334,7 @@ async function loadTab(tab) {
             { value: 'столярка_готова', label: '✅ Готово' },
         ];
 
-        let filterHtml = '';
-        if (tab === 'all') {
-            filterHtml = `
-                <div class="filter-container">
-                    <input type="text" id="allFilterInput" placeholder="🔍 Фильтр по названию мебели..." value="${state.filterText || ''}">
-                </div>
-            `;
-        }
-
-        let html = filterHtml + '<div class="all-items-list">' +
+        let html = '<div class="all-items-list">' +
             '<div class="list-header">' +
                 '<span class="item-number">№</span>' +
                 '<span class="item-name">Наименование</span>' +
@@ -386,14 +376,6 @@ async function loadTab(tab) {
 
         html += '</div>';
         container.innerHTML = html;
-
-        const allFilterInput = document.getElementById('allFilterInput');
-        if (allFilterInput) {
-            allFilterInput.addEventListener('input', function() {
-                state.filterText = this.value.trim();
-                loadTab('all');
-            });
-        }
 
         const selects = container.querySelectorAll('.status-select');
         selects.forEach(function(select) {
