@@ -329,7 +329,7 @@ body {
 }
 
 /* =============================================
-   ФИЛЬТР ВНУТРИ ВКЛАДКИ
+   ФИЛЬТР ВНУТРИ ВКЛАДКИ (только это новое)
    ============================================= */
 
 .filter-container {
@@ -347,7 +347,7 @@ body {
     border: 2px solid #e8ecf0;
     border-radius: 10px;
     font-size: 14px;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: inherit;
     background: #f8fafc;
     cursor: pointer;
     transition: all 0.2s;
@@ -358,17 +358,6 @@ body {
     outline: none;
     border-color: #4a90d9;
     box-shadow: 0 0 0 4px rgba(74, 144, 217, 0.08);
-}
-
-.filter-container .filter-select option {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-.filter-container .btn-sm {
-    padding: 6px 14px;
-    font-size: 13px;
-    border-radius: 8px;
-    white-space: nowrap;
 }
 
 /* =============================================
