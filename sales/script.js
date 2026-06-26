@@ -110,7 +110,7 @@ async function loadCatalog() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 📦 ЗАГРУЗКА МОИХ ЗАКАЗОВ
+// 📦 ЗАГРУЗКА МОИХ ЗАКАЗОВ (с исправленными статусами)
 // ═══════════════════════════════════════════════════════════════════
 
 async function loadMyOrders() {
@@ -129,31 +129,31 @@ async function loadMyOrders() {
             return;
         }
 
+        const statusColors = {
+            'новый': { color: '#4a90d9', label: '🆕 Новый' },
+            'у_конструктора': { color: '#f39c12', label: '📐 У конструктора' },
+            'в_столярке': { color: '#e67e22', label: '🔨 В столярном цехе' },
+            'столярка_готова': { color: '#2ecc71', label: '✅ Столярный цех готов' },
+            'в_швейном': { color: '#9b59b6', label: '🧵 В швейном цехе' },
+            'швейный_готов': { color: '#8e44ad', label: '✅ Швейный цех готов' },
+            'в_малярном': { color: '#3498db', label: '🎨 В малярном цехе' },
+            'малярный_готов': { color: '#2980b9', label: '✅ Малярный цех готов' },
+            'на_обивку': { color: '#1abc9c', label: '🛋 На обивку' },
+            'обивочный_готов': { color: '#16a085', label: '✅ Обивочный цех готов' },
+            'на_отк': { color: '#e74c3c', label: '🔍 На ОТК' },
+            'отк_готов': { color: '#27ae60', label: '✅ ОТК пройден' },
+            'завершен': { color: '#2c3e50', label: '🎉 Завершён' },
+        };
+
         let html = '';
         for (const order of orders.items) {
-            const statusColors = {
-                'новый': '#4a90d9',
-                'у_конструктора': '#f39c12',
-                'чертеж_готов': '#f1c40f',
-                'в_столярке': '#e67e22',
-                'столярка_готова': '#2ecc71',
-                'в_швейном': '#9b59b6',
-                'швейный_готов': '#8e44ad',
-                'в_малярном': '#3498db',
-                'малярный_готов': '#2980b9',
-                'на_обивку': '#1abc9c',
-                'обивочный_готов': '#16a085',
-                'на_отк': '#e74c3c',
-                'отк_готов': '#27ae60',
-                'завершен': '#2c3e50',
-            };
-            const statusColor = statusColors[order.stats] || '#666';
+            const statusInfo = statusColors[order.stats] || { color: '#666', label: order.stats || 'новый' };
 
             html += '<div class="order-card" data-id="' + order.id + '">' +
                 '<div class="order-header">' +
                     '<span class="order-number">Заказ #' + order.nomer_partii + '</span>' +
-                    '<span class="order-status" style="background:' + statusColor + '20; color:' + statusColor + '; border:1px solid ' + statusColor + '40;">' +
-                        (order.stats || 'новый') +
+                    '<span class="order-status" style="background:' + statusInfo.color + '20; color:' + statusInfo.color + '; border:1px solid ' + statusInfo.color + '40;">' +
+                        statusInfo.label +
                     '</span>' +
                 '</div>' +
                 '<div class="order-client">👤 Клиент: ' + order.klient + '</div>' +
@@ -216,17 +216,14 @@ async function loadMyOrders() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 🗑️ УДАЛЕНИЕ ЗАКАЗА (исправленное)
+// 🗑️ УДАЛЕНИЕ ЗАКАЗА
 // ═══════════════════════════════════════════════════════════════════
 
 async function deleteOrder(orderId) {
     try {
-        // 1. Получаем все order_items этого заказа
         const items = await pb.collection('order_items').getList(1, 100, {
             filter: 'order_id = "' + orderId + '"',
         });
-
-        // 2. Для каждого order_item удаляем связанные item_units
         for (const item of items.items) {
             const units = await pb.collection('item_units').getList(1, 100, {
                 filter: 'order_item_id = "' + item.id + '"',
@@ -234,13 +231,9 @@ async function deleteOrder(orderId) {
             for (const unit of units.items) {
                 await pb.collection('item_units').delete(unit.id);
             }
-            // 3. Удаляем сам order_item
             await pb.collection('order_items').delete(item.id);
         }
-
-        // 4. Удаляем заказ
         await pb.collection('orders').delete(orderId);
-        
         showMessage('✅ Заказ успешно удалён!', 'success');
         loadMyOrders();
     } catch (err) {
@@ -615,7 +608,6 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
 
             await pb.collection('orders').update(state.currentOrderId, updateData);
 
-            // ⬇️ ПРАВИЛЬНОЕ УДАЛЕНИЕ СТАРЫХ ПОЗИЦИЙ ⬇️
             const oldItems = await pb.collection('order_items').getList(1, 100, {
                 filter: 'order_id = "' + state.currentOrderId + '"',
             });
@@ -656,7 +648,6 @@ document.getElementById('createOrderBtn').addEventListener('click', async functi
             switchTab('myOrders');
 
         } else {
-            // ✅ СОЗДАНИЕ НОВОГО ЗАКАЗА
             const allOrdersByNumber = await pb.collection('orders').getList(1, 1, {
                 sort: '-nomer_partii',
             });
