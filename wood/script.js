@@ -149,23 +149,27 @@ async function loadTab(tab) {
                 return !name.includes('подушк');
             });
 
+            // ⬇️ РАЗВОРАЧИВАЕМ КОЛИЧЕСТВО ⬇️
             let positionCounter = 0;
             filteredItems.forEach(function(item) {
-                positionCounter++;
-                allItems.push({
-                    id: item.id,
-                    orderId: order.id,
-                    orderNumber: order.nomer_partii,
-                    positionNumber: positionCounter,
-                    fullNumber: order.nomer_partii + '/' + positionCounter,
-                    name: item.mebel || 'Без названия',
-                    fabric: item.tkan || '',
-                    color: item.cvet_opor || '',
-                    finish: item.otdelka || '',
-                    deliveryDate: order.data_sdai ? new Date(order.data_sdai).toLocaleDateString() : 'не указана',
-                    status: item.status || 'новый',
-                    isDevelopment: order.njna_razrabotka || false,
-                });
+                const count = item.kolichestvo || 1;
+                for (let i = 0; i < count; i++) {
+                    positionCounter++;
+                    allItems.push({
+                        id: item.id,
+                        orderId: order.id,
+                        orderNumber: order.nomer_partii,
+                        positionNumber: positionCounter,
+                        fullNumber: order.nomer_partii + '/' + positionCounter,
+                        name: item.mebel || 'Без названия',
+                        fabric: item.tkan || '',
+                        color: item.cvet_opor || '',
+                        finish: item.otdelka || '',
+                        deliveryDate: order.data_sdai ? new Date(order.data_sdai).toLocaleDateString() : 'не указана',
+                        status: item.status || 'новый',
+                        isDevelopment: order.njna_razrabotka || false,
+                    });
+                }
             });
         }
 
@@ -305,7 +309,6 @@ async function changeItemStatus(itemId, newStatus) {
     try {
         console.log('🔄 Меняем статус позиции ' + itemId + ' на "' + newStatus + '"');
         
-        // ⚠️ ВАЖНО: обновляем ТОЛЬКО поле status в order_items!
         await pb.collection('order_items').update(itemId, {
             status: newStatus,
         });
