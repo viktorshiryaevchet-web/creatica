@@ -11,6 +11,8 @@ pb.autoCancellation(false);
 
 const state = {
     currentUser: null,
+    searchQuery: '',
+    showCompleted: false,
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -105,10 +107,37 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 async function loadAllTabs() {
+    await loadTab('new');
     await loadTab('active');
     await loadTab('development');
     await loadTab('completed');
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// 🔍 ПОИСК И ФИЛЬТРЫ
+// ═══════════════════════════════════════════════════════════════════
+
+const searchInput = document.getElementById('searchInput');
+const showCompletedCheckbox = document.getElementById('showCompleted');
+const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+
+searchInput.addEventListener('input', function() {
+    state.searchQuery = this.value.trim().toLowerCase();
+    loadAllTabs();
+});
+
+showCompletedCheckbox.addEventListener('change', function() {
+    state.showCompleted = this.checked;
+    loadAllTabs();
+});
+
+resetFiltersBtn.addEventListener('click', function() {
+    searchInput.value = '';
+    state.searchQuery = '';
+    showCompletedCheckbox.checked = false;
+    state.showCompleted = false;
+    loadAllTabs();
+});
 
 // ═══════════════════════════════════════════════════════════════════
 // 📦 ЗАГРУЗКА ЗАКАЗОВ ПО ВКЛАДКАМ
@@ -123,6 +152,9 @@ async function loadTab(tab) {
     let sort = '+data_sdai, +created';
 
     switch (tab) {
+        case 'new':
+            filter = `stats = "новый"`;
+            break;
         case 'active':
             filter = `stats = "в_столярке" || stats = "чертеж_готов"`;
             break;
@@ -137,8 +169,19 @@ async function loadTab(tab) {
             filter = '';
     }
 
+    // Фильтр по завершённым
+    if (!state.showCompleted && tab !== 'completed') {
+        // Показываем только активные (не завершённые)
+        // Уже отфильтровано по статусам
+    }
+
+    // Поиск
+    if (state.searchQuery) {
+        filter = `(${filter}) && (LOWER(klient) ~ "${state.searchQuery}" || LOWER(nomer_partii) ~ "${state.searchQuery}")`;
+    }
+
     try {
-        const result = await pb.collection('orders').getList(1, 100, {
+        const result = await pb.collection('orders').getList(1, 200, {
             filter: filter,
             sort: sort,
             expand: 'menedzer_id',
@@ -185,23 +228,20 @@ async function loadTab(tab) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 🖥️ ОТРИСОВКА КАРТОЧКИ ЗАКАЗА (С ГРУППИРОВКОЙ)
+// 🖥️ ОТРИСОВКА КАРТОЧКИ ЗАКАЗА
 // ═══════════════════════════════════════════════════════════════════
 
 async function renderOrderCard(order) {
-    // Получаем позиции заказа
     const items = await pb.collection('order_items').getList(1, 100, {
         filter: `order_id = "${order.id}"`,
         sort: 'nomer_pozicii',
     });
 
-    // Фильтруем подушки
     const filteredItems = items.items.filter(item => {
         const name = (item.mebel || '').toLowerCase();
         return !name.includes('подушк');
     });
 
-    // Группируем по ПОЛНОМУ названию (mebel)
     const groups = {};
     filteredItems.forEach(item => {
         const key = item.mebel || 'Без названия';
@@ -212,7 +252,6 @@ async function renderOrderCard(order) {
 
     let summaryHtml = Object.entries(groups)
         .map(([name, data]) => {
-            // Находим ближайшую дату сдачи среди этих позиций (берём из заказа)
             const deliveryDate = order.data_sdai ? new Date(order.data_sdai).toLocaleDateString() : 'не указана';
             return `<div class="group-item">
                 <span>${name}</span>
@@ -223,18 +262,17 @@ async function renderOrderCard(order) {
 
     if (!summaryHtml) summaryHtml = 'Нет позиций (все подушки)';
 
-    // Статус
     const statusMap = {
-        'в_столярке': { label: 'В работе', class: 'active' },
-        'чертеж_готов': { label: 'Чертёж готов', class: 'waiting' },
-        'столярка_готова': { label: 'Готово', class: 'done' },
-        'у_конструктора': { label: 'У конструктора', class: 'constructor' },
+        'новый': { label: '🆕 Новый', class: 'waiting' },
+        'в_столярке': { label: '🛠 В работе', class: 'active' },
+        'чертеж_готов': { label: '📐 Чертёж готов', class: 'waiting' },
+        'столярка_готова': { label: '✅ Готово', class: 'done' },
+        'у_конструктора': { label: '↩️ У конструктора', class: 'constructor' },
     };
     const statusInfo = statusMap[order.stats] || { label: order.stats || 'новый', class: '' };
 
-    // Кнопки в зависимости от статуса
     let actionsHtml = '';
-    if (order.stats === 'в_столярке' || order.stats === 'чертеж_готов') {
+    if (order.stats === 'в_столярке' || order.stats === 'чертеж_готов' || order.stats === 'новый') {
         actionsHtml = `
             <button class="btn btn-success btn-sm btn-status" data-id="${order.id}" data-status="столярка_готова">✅ Готово</button>
             <button class="btn btn-danger btn-sm btn-status" data-id="${order.id}" data-status="у_конструктора">↩️ Нет чертежа</button>
