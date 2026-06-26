@@ -42,9 +42,7 @@ async function loadUserData() {
         const activeTab = document.querySelector('.tab-btn.active');
         if (activeTab) {
             const tab = activeTab.dataset.tab;
-            if (tab === 'all') {
-                // Все позиции загружаются по кнопке
-            } else {
+            if (tab !== 'all') {
                 loadTab(tab);
             }
         }
@@ -101,13 +99,20 @@ function showLoginMessage(text, type) {
 // 📑 ВКЛАДКИ
 // ═══════════════════════════════════════════════════════════════════
 
-document.querySelectorAll('.tab-btn').forEach(btn => {
+document.querySelectorAll('.tab-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
         const tab = this.dataset.tab;
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(function(b) {
+            b.classList.remove('active');
+        });
         this.classList.add('active');
-        document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
-        document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`).style.display = 'block';
+        document.querySelectorAll('.tab-content').forEach(function(c) {
+            c.style.display = 'none';
+        });
+        const content = document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1));
+        if (content) {
+            content.style.display = 'block';
+        }
         
         if (tab === 'all') {
             // Все позиции загружаются по кнопке
@@ -122,26 +127,21 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 // ═══════════════════════════════════════════════════════════════════
 
 async function loadTab(tab) {
-    const container = document.getElementById(`ordersList${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
+    const containerId = 'ordersList' + tab.charAt(0).toUpperCase() + tab.slice(1);
+    const container = document.getElementById(containerId);
     if (!container) return;
     container.innerHTML = '<p class="empty-text">Загрузка...</p>';
 
     let filter = '';
     let sort = '+data_sdai, +created';
 
-    switch (tab) {
-        case 'active':
-            filter = `stats = "в_столярке" || stats = "чертеж_готов"`;
-            break;
-        case 'development':
-            filter = `njna_razrabotka = true`;
-            break;
-        case 'completed':
-            filter = `stats = "столярка_готова"`;
-            sort = '-data_sdai, -created';
-            break;
-        default:
-            filter = '';
+    if (tab === 'active') {
+        filter = 'stats = "в_столярке" || stats = "чертеж_готов"';
+    } else if (tab === 'development') {
+        filter = 'njna_razrabotka = true';
+    } else if (tab === 'completed') {
+        filter = 'stats = "столярка_готова"';
+        sort = '-data_sdai, -created';
     }
 
     try {
@@ -163,7 +163,8 @@ async function loadTab(tab) {
         }
         container.innerHTML = html;
 
-        document.querySelectorAll(`#ordersList${tab.charAt(0).toUpperCase() + tab.slice(1)} .status-select`).forEach(select => {
+        const selects = container.querySelectorAll('.status-select');
+        selects.forEach(function(select) {
             select.addEventListener('change', function(e) {
                 e.stopPropagation();
                 const orderId = this.dataset.id;
@@ -174,11 +175,12 @@ async function loadTab(tab) {
             });
         });
 
-        document.querySelectorAll(`#ordersList${tab.charAt(0).toUpperCase() + tab.slice(1)} .order-card`).forEach(card => {
+        const cards = container.querySelectorAll('.order-card');
+        cards.forEach(function(card) {
             card.addEventListener('click', function(e) {
                 if (e.target.closest('.status-select')) return;
                 const id = this.dataset.id;
-                const itemsContainer = document.getElementById(`items-${id}`);
+                const itemsContainer = document.getElementById('items-' + id);
                 if (itemsContainer) {
                     itemsContainer.classList.toggle('show');
                 }
@@ -186,7 +188,7 @@ async function loadTab(tab) {
         });
 
     } catch (err) {
-        console.error(`Ошибка загрузки заказов (${tab}):`, err);
+        console.error('Ошибка загрузки заказов (' + tab + '):', err);
         container.innerHTML = '<p class="empty-text">Ошибка загрузки заказов</p>';
     }
 }
@@ -197,33 +199,36 @@ async function loadTab(tab) {
 
 async function renderOrderCard(order) {
     const items = await pb.collection('order_items').getList(1, 100, {
-        filter: `order_id = "${order.id}"`,
+        filter: 'order_id = "' + order.id + '"',
         sort: 'nomer_pozicii',
     });
 
-    const filteredItems = items.items.filter(item => {
+    const filteredItems = items.items.filter(function(item) {
         const name = (item.mebel || '').toLowerCase();
         return !name.includes('подушк');
     });
 
     const groups = {};
-    filteredItems.forEach(item => {
+    filteredItems.forEach(function(item) {
         const key = item.mebel || 'Без названия';
         if (!groups[key]) groups[key] = 0;
         groups[key] += item.kolichestvo || 1;
     });
 
-    let summaryHtml = Object.entries(groups)
-        .map(([name, count]) => {
+    let summaryHtml = '';
+    const groupKeys = Object.keys(groups);
+    if (groupKeys.length === 0) {
+        summaryHtml = 'Нет позиций (все подушки)';
+    } else {
+        groupKeys.forEach(function(name) {
+            const count = groups[name];
             const deliveryDate = order.data_sdai ? new Date(order.data_sdai).toLocaleDateString() : 'не указана';
-            return `<div class="group-item">
-                <span>${name}</span>
-                <span><span class="count">${count}</span> шт. | 📅 ${deliveryDate}</span>
-            </div>`;
-        })
-        .join('');
-
-    if (!summaryHtml) summaryHtml = 'Нет позиций (все подушки)';
+            summaryHtml += '<div class="group-item">';
+            summaryHtml += '<span>' + name + '</span>';
+            summaryHtml += '<span><span class="count">' + count + '</span> шт. | 📅 ' + deliveryDate + '</span>';
+            summaryHtml += '</div>';
+        });
+    }
 
     const statusMap = {
         'новый': { label: '🆕 Новый', class: 'new' },
@@ -242,52 +247,69 @@ async function renderOrderCard(order) {
         { value: 'у_конструктора', label: '↩️ Нет чертежа' },
     ];
 
-    let statusSelectHtml = `
-        <select class="status-select" data-id="${order.id}">
-            <option value="">📌 Сменить статус...</option>
-    `;
-    statusOptions.forEach(opt => {
+    let statusSelectHtml = '<select class="status-select" data-id="' + order.id + '">';
+    statusSelectHtml += '<option value="">📌 Сменить статус...</option>';
+    statusOptions.forEach(function(opt) {
         const selected = opt.value === order.stats ? 'selected' : '';
-        statusSelectHtml += `<option value="${opt.value}" ${selected}>${opt.label}</option>`;
+        statusSelectHtml += '<option value="' + opt.value + '" ' + selected + '>' + opt.label + '</option>';
     });
-    statusSelectHtml += `</select>`;
+    statusSelectHtml += '</select>';
 
     const deliveryDate = order.data_sdai ? new Date(order.data_sdai).toLocaleDateString() : 'не указана';
     const createdDate = new Date(order.created).toLocaleDateString();
 
-    return `
-        <div class="order-card" data-id="${order.id}" style="${order.stats === 'столярка_готова' ? 'border-left-color: #22c55e;' : ''}">
-            <div class="order-header">
-                <span class="order-number">Партия #${order.nomer_partii}</span>
-                <span class="order-status ${statusInfo.class}">${statusInfo.label}</span>
-            </div>
-            <div class="order-client">👤 Клиент: ${order.klient || 'Не указан'}</div>
-            <div class="order-meta">
-                <span>📅 Сдача: ${deliveryDate}</span>
-                <span>📅 Создан: ${createdDate}</span>
-                <span>📦 Позиций: ${filteredItems.length}</span>
-                ${order.njna_razrabotka ? ' | 🔨 Разработка' : ''}
-            </div>
-            <div class="order-items-group">
-                📋 Сводка по позициям:<br>
-                ${summaryHtml}
-            </div>
-            <div id="items-${order.id}" class="items-list">
-                ${filteredItems.map(item => `
-                    <div class="item-row">
-                        <span class="item-name">${item.mebel || 'Без названия'}</span>
-                        <span class="item-detail">${item.tkan ? `Ткань: ${item.tkan}` : ''} ${item.cvet_opor ? `| Цвет опор: ${item.cvet_opor}` : ''} ${item.otdelka ? `| Отделка: ${item.otdelka}` : ''} | Количество: ${item.kolichestvo || 1}</span>
-                    </div>
-                `).join('')}
-            </div>
-            <div class="order-actions">
-                ${statusSelectHtml}
-            </div>
-            <div class="order-date" style="margin-top:4px;">
-                ${order.kommentarii ? `💬 ${order.kommentarii}` : ''}
-            </div>
-        </div>
-    `;
+    let itemsHtml = '';
+    filteredItems.forEach(function(item) {
+        let detail = '';
+        if (item.tkan) detail += 'Ткань: ' + item.tkan;
+        if (item.cvet_opor) {
+            if (detail) detail += ' | ';
+            detail += 'Цвет опор: ' + item.cvet_opor;
+        }
+        if (item.otdelka) {
+            if (detail) detail += ' | ';
+            detail += 'Отделка: ' + item.otdelka;
+        }
+        if (item.kolichestvo) {
+            if (detail) detail += ' | ';
+            detail += 'Количество: ' + item.kolichestvo;
+        }
+        itemsHtml += '<div class="item-row">';
+        itemsHtml += '<span class="item-name">' + (item.mebel || 'Без названия') + '</span>';
+        itemsHtml += '<span class="item-detail">' + detail + '</span>';
+        itemsHtml += '</div>';
+    });
+
+    if (!itemsHtml) itemsHtml = 'Нет позиций';
+
+    const borderColor = order.stats === 'столярка_готова' ? 'border-left-color: #22c55e;' : '';
+
+    return '<div class="order-card" data-id="' + order.id + '" style="' + borderColor + '">' +
+        '<div class="order-header">' +
+            '<span class="order-number">Партия #' + order.nomer_partii + '</span>' +
+            '<span class="order-status ' + statusInfo.class + '">' + statusInfo.label + '</span>' +
+        '</div>' +
+        '<div class="order-client">👤 Клиент: ' + (order.klient || 'Не указан') + '</div>' +
+        '<div class="order-meta">' +
+            '<span>📅 Сдача: ' + deliveryDate + '</span>' +
+            '<span>📅 Создан: ' + createdDate + '</span>' +
+            '<span>📦 Позиций: ' + filteredItems.length + '</span>' +
+            (order.njna_razrabotka ? ' | 🔨 Разработка' : '') +
+        '</div>' +
+        '<div class="order-items-group">' +
+            '📋 Сводка по позициям:<br>' +
+            summaryHtml +
+        '</div>' +
+        '<div id="items-' + order.id + '" class="items-list">' +
+            itemsHtml +
+        '</div>' +
+        '<div class="order-actions">' +
+            statusSelectHtml +
+        '</div>' +
+        '<div class="order-date" style="margin-top:4px;">' +
+            (order.kommentarii ? '💬 ' + order.kommentarii : '') +
+        '</div>' +
+    '</div>';
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -301,13 +323,13 @@ async function changeOrderStatus(orderId, newStatus) {
     }
 
     try {
-        console.log(`🔄 Меняем статус заказа ${orderId} на "${newStatus}"`);
+        console.log('🔄 Меняем статус заказа ' + orderId + ' на "' + newStatus + '"');
         
         await pb.collection('orders').update(orderId, {
             stats: newStatus,
         });
         
-        showMessage(`✅ Статус заказа изменён на "${newStatus}"`, 'success');
+        showMessage('✅ Статус заказа изменён на "' + newStatus + '"', 'success');
         
         const activeTab = document.querySelector('.tab-btn.active');
         if (activeTab) {
@@ -342,30 +364,27 @@ document.getElementById('loadAllItemsBtn').addEventListener('click', async funct
         }
 
         let allItems = [];
-        let orderCounter = 0;
 
         for (const order of orders.items) {
-            orderCounter++;
-            
             const items = await pb.collection('order_items').getList(1, 100, {
-                filter: `order_id = "${order.id}"`,
+                filter: 'order_id = "' + order.id + '"',
                 sort: 'nomer_pozicii',
             });
 
-            const filteredItems = items.items.filter(item => {
+            const filteredItems = items.items.filter(function(item) {
                 const name = (item.mebel || '').toLowerCase();
                 return !name.includes('подушк');
             });
 
             let positionCounter = 0;
-            filteredItems.forEach(item => {
+            filteredItems.forEach(function(item) {
                 const count = item.kolichestvo || 1;
                 for (let i = 0; i < count; i++) {
                     positionCounter++;
                     allItems.push({
                         orderNumber: order.nomer_partii,
                         positionNumber: positionCounter,
-                        fullNumber: `${order.nomer_partii}/${positionCounter}`,
+                        fullNumber: order.nomer_partii + '/' + positionCounter,
                         name: item.mebel || 'Без названия',
                         fabric: item.tkan || '',
                         color: item.cvet_opor || '',
@@ -390,41 +409,42 @@ document.getElementById('loadAllItemsBtn').addEventListener('click', async funct
             'у_конструктора': { label: '↩️ У конструктора', class: 'constructor' },
         };
 
-        let html = `
-            <div class="all-items-list">
-                <div class="list-header">
-                    <span class="item-number">№</span>
-                    <span class="item-name">Наименование</span>
-                    <span class="item-detail">Детали | 📅 Сдача | Статус</span>
-                </div>
-        `;
+        let html = '<div class="all-items-list">' +
+            '<div class="list-header">' +
+                '<span class="item-number">№</span>' +
+                '<span class="item-name">Наименование</span>' +
+                '<span class="item-detail">Детали | 📅 Сдача | Статус</span>' +
+            '</div>';
 
-        allItems.forEach(item => {
+        allItems.forEach(function(item) {
             const statusInfo = statusMap[item.status] || { label: item.status, class: '' };
-            const details = [
-                item.fabric ? `Ткань: ${item.fabric}` : '',
-                item.color ? `Цвет опор: ${item.color}` : '',
-                item.finish ? `Отделка: ${item.finish}` : '',
-            ].filter(Boolean).join(' | ');
+            let details = '';
+            if (item.fabric) details += 'Ткань: ' + item.fabric;
+            if (item.color) {
+                if (details) details += ' | ';
+                details += 'Цвет опор: ' + item.color;
+            }
+            if (item.finish) {
+                if (details) details += ' | ';
+                details += 'Отделка: ' + item.finish;
+            }
 
-            html += `
-                <div class="item-row">
-                    <span class="item-number">${item.fullNumber}</span>
-                    <span class="item-name">${item.name}</span>
-                    <span class="item-detail">
-                        ${details ? details + ' | ' : ''}📅 ${item.deliveryDate}
-                        <span class="item-status ${statusInfo.class}">${statusInfo.label}</span>
-                    </span>
-                </div>
-            `;
+            html += '<div class="item-row">' +
+                '<span class="item-number">' + item.fullNumber + '</span>' +
+                '<span class="item-name">' + item.name + '</span>' +
+                '<span class="item-detail">' +
+                    (details ? details + ' | ' : '') + '📅 ' + item.deliveryDate +
+                    '<span class="item-status ' + statusInfo.class + '">' + statusInfo.label + '</span>' +
+                '</span>' +
+            '</div>';
         });
 
-        html += `</div>`;
+        html += '</div>';
         container.innerHTML = html;
 
     } catch (err) {
         console.error('Ошибка загрузки позиций:', err);
-        container.innerHTML = `<p class="empty-text">❌ Ошибка загрузки: ${err.message || 'Неизвестная ошибка'}</p>`;
+        container.innerHTML = '<p class="empty-text">❌ Ошибка загрузки: ' + (err.message || 'Неизвестная ошибка') + '</p>';
     }
 });
 
@@ -439,7 +459,7 @@ function showMessage(text, type) {
     el.style.display = 'block';
 
     clearTimeout(window.messageTimeout);
-    window.messageTimeout = setTimeout(() => {
+    window.messageTimeout = setTimeout(function() {
         el.style.display = 'none';
     }, 5000);
 }
