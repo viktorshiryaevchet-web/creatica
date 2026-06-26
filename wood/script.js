@@ -149,7 +149,6 @@ async function loadTab(tab) {
                 return !name.includes('подушк');
             });
 
-            // ⬇️ Считаем общее количество позиций в заказе
             let totalUnitsInOrder = 0;
             for (const item of filteredItems) {
                 const units = await pb.collection('item_units').getList(1, 100, {
@@ -169,7 +168,6 @@ async function loadTab(tab) {
                 for (const unit of units.items) {
                     positionCounter++;
                     let fullNumber;
-                    // ⬇️ Если в заказе всего 1 единица — показываем только номер заказа
                     if (totalUnitsInOrder === 1) {
                         fullNumber = String(order.nomer_partii);
                     } else {
@@ -318,7 +316,7 @@ async function loadTab(tab) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 📌 СМЕНА СТАТУСА У КОНКРЕТНОЙ ЕДИНИЦЫ
+// 📌 СМЕНА СТАТУСА У КОНКРЕТНОЙ ЕДИНИЦЫ (с обновлением заказа)
 // ═══════════════════════════════════════════════════════════════════
 
 async function changeItemStatus(unitId, newStatus) {
@@ -330,9 +328,29 @@ async function changeItemStatus(unitId, newStatus) {
     try {
         console.log('🔄 Меняем статус единицы ' + unitId + ' на "' + newStatus + '"');
         
+        // 1. Получаем единицу и связанный order_item
+        const unit = await pb.collection('item_units').getOne(unitId, {
+            expand: 'order_item_id',
+        });
+        
+        const orderItem = unit.expand?.order_item_id;
+        if (!orderItem) {
+            showMessage('❌ Ошибка: не найден связанный заказ', 'error');
+            return;
+        }
+        
+        const orderId = orderItem.order_id;
+        
+        // 2. Обновляем статус единицы
         await pb.collection('item_units').update(unitId, {
             status: newStatus,
         });
+        
+        // 3. Обновляем статус заказа в orders.stats
+        await pb.collection('orders').update(orderId, {
+            stats: newStatus,
+        });
+        console.log('✅ Статус заказа ' + orderId + ' обновлён на "' + newStatus + '"');
         
         showMessage('✅ Статус позиции изменён на "' + newStatus + '"', 'success');
         
