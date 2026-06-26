@@ -6,6 +6,32 @@ const pb = new PocketBase('https://creatica.duckdns.org');
 pb.autoCancellation(false);
 
 // ═══════════════════════════════════════════════════════════════════
+// 🎨 ПОДСВЕТКА ДАТЫ СДАЧИ
+// ═══════════════════════════════════════════════════════════════════
+
+function getDateColor(deliveryDate) {
+    if (!deliveryDate) return '';
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const delivery = new Date(deliveryDate);
+    delivery.setHours(0, 0, 0, 0);
+    
+    const diffDays = Math.ceil((delivery - today) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) {
+        return 'date-overdue';
+    } else if (diffDays <= 2) {
+        return 'date-urgent';
+    } else if (diffDays <= 10) {
+        return 'date-warning';
+    } else {
+        return 'date-ok';
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // 🧠 СОСТОЯНИЕ
 // ═══════════════════════════════════════════════════════════════════
 
@@ -185,6 +211,7 @@ async function loadTab(tab) {
                         color: item.cvet_opor || '',
                         finish: item.otdelka || '',
                         deliveryDate: order.data_sdai ? new Date(order.data_sdai).toLocaleDateString() : 'не указана',
+                        deliveryDateRaw: order.data_sdai,
                         status: unit.status || 'новый',
                         isDevelopment: order.njna_razrabotka || false,
                     });
@@ -269,6 +296,10 @@ async function loadTab(tab) {
                 details += 'Отделка: ' + item.finish;
             }
 
+            // Подсветка даты
+            const dateColorClass = getDateColor(item.deliveryDateRaw);
+            const deliveryDisplay = item.deliveryDate || 'не указана';
+
             let statusSelectHtml = '<select class="status-select" data-unit-id="' + item.unitId + '">';
             statusOptions.forEach(function(opt) {
                 const selected = opt.value === item.status ? 'selected' : '';
@@ -280,7 +311,7 @@ async function loadTab(tab) {
                 '<span class="item-number">' + item.fullNumber + '</span>' +
                 '<span class="item-name">' + item.name + '</span>' +
                 '<span class="item-detail">' +
-                    (details ? details + ' | ' : '') + '📅 ' + item.deliveryDate +
+                    (details ? details + ' | ' : '') + '📅 <span class="' + dateColorClass + '">' + deliveryDisplay + '</span>' +
                     ' ' + statusSelectHtml +
                 '</span>' +
             '</div>';
@@ -328,7 +359,6 @@ async function changeItemStatus(unitId, newStatus) {
     try {
         console.log('🔄 Меняем статус единицы ' + unitId + ' на "' + newStatus + '"');
         
-        // 1. Получаем единицу и связанный order_item
         const unit = await pb.collection('item_units').getOne(unitId, {
             expand: 'order_item_id',
         });
@@ -341,12 +371,10 @@ async function changeItemStatus(unitId, newStatus) {
         
         const orderId = orderItem.order_id;
         
-        // 2. Обновляем статус единицы
         await pb.collection('item_units').update(unitId, {
             status: newStatus,
         });
         
-        // 3. ⬇️ ВАЖНО: обновляем статус заказа в orders.stats ⬇️
         await pb.collection('orders').update(orderId, {
             stats: newStatus,
         });
