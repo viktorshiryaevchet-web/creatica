@@ -11,9 +11,6 @@ pb.autoCancellation(false);
 
 const state = {
     currentUser: null,
-    searchQuery: '',
-    partyFilter: '',
-    showCompleted: false,
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -42,7 +39,16 @@ async function loadUserData() {
     try {
         state.currentUser = await pb.collection('users').authRefresh();
         userNameDisplay.textContent = state.currentUser.record?.name || state.currentUser.record?.email;
-        loadAllTabs();
+        // Загружаем только активную вкладку при входе
+        const activeTab = document.querySelector('.tab-btn.active');
+        if (activeTab) {
+            const tab = activeTab.dataset.tab;
+            if (tab === 'all') {
+                // Все позиции загружаются по кнопке
+            } else {
+                loadTab(tab);
+            }
+        }
     } catch (err) {
         pb.authStore.clear();
         showAuthScreen();
@@ -105,19 +111,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`).style.display = 'block');
         
         if (tab === 'all') {
-            // Вкладка "Все позиции" — загружаем по кнопке
+            // Все позиции загружаются по кнопке
         } else {
             loadTab(tab);
         }
     });
 });
-
-async function loadAllTabs() {
-    await loadTab('new');
-    await loadTab('active');
-    await loadTab('development');
-    await loadTab('completed');
-}
 
 // ═══════════════════════════════════════════════════════════════════
 // 📦 ЗАГРУЗКА ЗАКАЗОВ ПО ВКЛАДКАМ
@@ -132,9 +131,6 @@ async function loadTab(tab) {
     let sort = '+data_sdai, +created';
 
     switch (tab) {
-        case 'new':
-            filter = `stats = "новый"`;
-            break;
         case 'active':
             filter = `stats = "в_столярке" || stats = "чертеж_готов"`;
             break;
@@ -147,12 +143,6 @@ async function loadTab(tab) {
             break;
         default:
             filter = '';
-    }
-
-    // Поиск по клиенту или номеру
-    if (state.searchQuery) {
-        const searchFilter = `(LOWER(klient) ~ "${state.searchQuery}" || LOWER(nomer_partii) ~ "${state.searchQuery}")`;
-        filter = filter ? `(${filter}) && ${searchFilter}` : searchFilter;
     }
 
     try {
@@ -319,7 +309,15 @@ async function changeOrderStatus(orderId, newStatus) {
         });
         
         showMessage(`✅ Статус заказа изменён на "${newStatus}"`, 'success');
-        loadAllTabs();
+        
+        // Обновляем активную вкладку
+        const activeTab = document.querySelector('.tab-btn.active');
+        if (activeTab) {
+            const tab = activeTab.dataset.tab;
+            if (tab !== 'all') {
+                loadTab(tab);
+            }
+        }
     } catch (err) {
         console.error('Ошибка смены статуса:', err);
         showMessage('❌ Ошибка смены статуса: ' + (err.message || 'Неизвестная ошибка'), 'error');
