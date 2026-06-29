@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Конструкторский отдел</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📐</text></svg>">
+    <script src="https://unpkg.com/pocketbase@0.21.5/dist/pocketbase.umd.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+
+        <!-- АВТОРИЗАЦИЯ -->
+        <div id="authScreen">
+            <div class="card">
+                <div class="logo">
+                    <div class="logo-icon">📐</div>
+                </div>
+                <h1>Добро пожаловать</h1>
+                <p class="subtitle">Конструкторский отдел</p>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="constructor@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Пароль</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••">
+                </div>
+                <button id="loginBtn" class="btn btn-primary">Войти</button>
+                <div id="loginMessage" class="message"></div>
+            </div>
+        </div>
+
+        <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
+        <div id="mainScreen" style="display:none;">
+
+            <!-- ШАПКА -->
+            <div class="header-bar">
+                <div class="header-left">
+                    <h1>📐 Конструкторский отдел</h1>
+                    <span class="user-name" id="userNameDisplay">Конструктор</span>
+                </div>
+                <div class="header-right">
+                    <button id="logoutBtn" class="btn btn-danger btn-sm">Выйти</button>
+                </div>
+            </div>
+
+            <!-- ФИЛЬТРЫ -->
+            <div class="filter-bar">
+                <input type="text" id="searchInput" placeholder="🔍 Поиск по номеру или клиенту..." class="filter-search">
+                <select id="furnitureFilter" class="filter-select">
+                    <option value="">Все изделия</option>
+                </select>
+                <button id="resetFiltersBtn" class="btn btn-secondary btn-sm">Сбросить</button>
+            </div>
+
+            <!-- ВКЛАДКИ -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="active">🛠 В работе</button>
+                <button class="tab-btn" data-tab="completed">✅ Готово</button>
+                <button class="tab-btn" data-tab="all">📋 Все позиции</button>
+            </div>
+
+            <!-- ВКЛАДКА: В РАБОТЕ -->
+            <div id="tabActive" class="tab-content active">
+                <div id="ordersListActive"><p class="empty-text">Загрузка...</p></div>
+            </div>
+
+            <!-- ВКЛАДКА: ГОТОВО -->
+            <div id="tabCompleted" class="tab-content" style="display:none;">
+                <div id="ordersListCompleted"><p class="empty-text">Загрузка...</p></div>
+            </div>
+
+            <!-- ВКЛАДКА: ВСЕ ПОЗИЦИИ -->
+            <div id="tabAll" class="tab-content" style="display:none;">
+                <div id="ordersListAll"><p class="empty-text">Загрузка...</p></div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
