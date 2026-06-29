@@ -193,9 +193,12 @@ async function loadTab(tab) {
             return;
         }
 
+        // Собираем все позиции с данными заказа
         let allItems = [];
 
-        for (const order of orders.items) {
+        for (let oi = 0; oi < orders.items.length; oi++) {
+            const order = orders.items[oi];
+            
             const items = await pb.collection('order_items').getList(1, 100, {
                 filter: 'order_id = "' + order.id + '"',
                 sort: 'nomer_pozicii',
@@ -206,8 +209,10 @@ async function loadTab(tab) {
                 return !name.includes('подушк');
             });
 
+            // Подсчитываем общее количество единиц в заказе
             let totalUnitsInOrder = 0;
-            for (const item of filteredItems) {
+            for (let fi = 0; fi < filteredItems.length; fi++) {
+                const item = filteredItems[fi];
                 const units = await pb.collection('item_units').getList(1, 100, {
                     filter: 'order_item_id = "' + item.id + '"',
                     sort: 'number',
@@ -216,14 +221,17 @@ async function loadTab(tab) {
             }
 
             let positionCounter = 0;
-            for (const item of filteredItems) {
+            for (let fi = 0; fi < filteredItems.length; fi++) {
+                const item = filteredItems[fi];
                 const units = await pb.collection('item_units').getList(1, 100, {
                     filter: 'order_item_id = "' + item.id + '"',
                     sort: 'number',
                 });
 
-                for (const unit of units.items) {
+                for (let ui = 0; ui < units.items.length; ui++) {
+                    const unit = units.items[ui];
                     positionCounter++;
+                    
                     let fullNumber;
                     if (totalUnitsInOrder === 1) {
                         fullNumber = String(order.nomer_partii);
@@ -307,10 +315,21 @@ async function loadTab(tab) {
         if (select) {
             const currentValue = select.value;
             select.innerHTML = '<option value="">Все изделия</option>';
-            uniqueNames.forEach(function(name) {
+            for (let i = 0; i < uniqueNames.length; i++) {
+                const name = uniqueNames[i];
                 const selected = name === currentValue ? 'selected' : '';
                 select.innerHTML += '<option value="' + name + '" ' + selected + '>' + name + '</option>';
-            });
+            }
+        }
+
+        // Группируем по заказам
+        const orderMap = {};
+        for (let i = 0; i < filteredItems.length; i++) {
+            const item = filteredItems[i];
+            if (!orderMap[item.orderId]) {
+                orderMap[item.orderId] = [];
+            }
+            orderMap[item.orderId].push(item);
         }
 
         const statusMap = {
@@ -318,69 +337,50 @@ async function loadTab(tab) {
             'чертеж_готов': { label: '✅ Готово', class: 'done' },
         };
 
-        const statusOptions = [
-            { value: 'у_конструктора', label: '🛠 В работе' },
-            { value: 'чертеж_готов', label: '✅ Чертеж готов' },
-        ];
-
-        // Собираем уникальные orderId для группировки
-        const orderIds = [...new Set(filteredItems.map(function(item) { return item.orderId; }))];
-        
-        // Группируем по заказам
-        let groupedItems = {};
-        orderIds.forEach(function(id) {
-            groupedItems[id] = filteredItems.filter(function(item) { return item.orderId === id; });
-        });
-
         let html = '<div class="all-items-list">';
 
-        // Для каждого заказа создаём карточку
-        for (const orderId in groupedItems) {
-            const items = groupedItems[orderId];
+        // Проходим по каждому заказу
+        const orderIds = Object.keys(orderMap);
+        for (let oi = 0; oi < orderIds.length; oi++) {
+            const orderId = orderIds[oi];
+            const items = orderMap[orderId];
             const firstItem = items[0];
             
-            // Определяем статус заказа (все позиции в заказе должны иметь одинаковый статус)
+            // Определяем статус заказа
             const orderStatus = items[0].status;
             const statusInfo = statusMap[orderStatus] || { label: orderStatus, class: '' };
             
-            // Формируем номера позиций для отображения в заголовке
-            const numbers = items.map(function(item) { return item.fullNumber; }).join(', ');
+            // Формируем номера позиций
+            let numbers = '';
+            for (let ni = 0; ni < items.length; ni++) {
+                if (ni > 0) numbers += ', ';
+                numbers += items[ni].fullNumber;
+            }
             
-            // Дата сдачи (берём из первой позиции)
+            // Дата сдачи
             const deliveryDisplay = firstItem.deliveryDate || 'не указана';
             const dateColorClass = getDateColor(firstItem.deliveryDateRaw);
             
             // Файл
             let fileHtml = '';
             if (firstItem.hasFile && firstItem.fileUrl) {
-                fileHtml = `
-                    <div class="order-file">
-                        📎 <a href="${firstItem.fileUrl}" target="_blank" class="file-link">Скачать файл</a>
-                    </div>
-                `;
+                fileHtml = '<div class="order-file">📎 <a href="' + firstItem.fileUrl + '" target="_blank" class="file-link">Скачать файл</a></div>';
             } else {
-                fileHtml = `
-                    <div class="order-file" style="background: #f8f9fa; color: #999;">
-                        📎 Файл не приложен
-                    </div>
-                `;
+                fileHtml = '<div class="order-file" style="background: #f8f9fa; color: #999;">📎 Файл не приложен</div>';
             }
             
             // Кнопки действий
             let actionsHtml = '';
             if (orderStatus === 'у_конструктора') {
-                actionsHtml = `
-                    <button class="btn btn-success btn-sm btn-status" data-order-id="${orderId}" data-status="чертеж_готов">✅ Чертеж готов</button>
-                `;
+                actionsHtml = '<button class="btn btn-success btn-sm btn-status" data-order-id="' + orderId + '" data-status="чертеж_готов">✅ Чертеж готов</button>';
             } else if (orderStatus === 'чертеж_готов') {
-                actionsHtml = `
-                    <button class="btn btn-danger btn-sm btn-status" data-order-id="${orderId}" data-status="у_конструктора">↩️ Вернуть в работу</button>
-                `;
+                actionsHtml = '<button class="btn btn-danger btn-sm btn-status" data-order-id="' + orderId + '" data-status="у_конструктора">↩️ Вернуть в работу</button>';
             }
 
             // Список позиций внутри заказа
             let itemsHtml = '';
-            items.forEach(function(item) {
+            for (let ii = 0; ii < items.length; ii++) {
+                const item = items[ii];
                 let details = '';
                 if (item.fabric) details += 'Ткань: ' + item.fabric;
                 if (item.color) {
@@ -391,37 +391,29 @@ async function loadTab(tab) {
                     if (details) details += ' | ';
                     details += 'Отделка: ' + item.finish;
                 }
-                itemsHtml += `
-                    <div class="item-row-inner">
-                        <span class="item-number-inner">${item.fullNumber}</span>
-                        <span class="item-name-inner">${item.name}</span>
-                        <span class="item-detail-inner">${details || 'Нет деталей'}</span>
-                    </div>
-                `;
-            });
+                itemsHtml += '<div class="item-row-inner">' +
+                    '<span class="item-number-inner">' + item.fullNumber + '</span>' +
+                    '<span class="item-name-inner">' + item.name + '</span>' +
+                    '<span class="item-detail-inner">' + (details || 'Нет деталей') + '</span>' +
+                '</div>';
+            }
 
-            html += `
-                <div class="order-card" data-id="${orderId}">
-                    <div class="order-header">
-                        <span class="order-number">Заказ #${firstItem.orderNumber}</span>
-                        <span class="order-status ${statusInfo.class}">${statusInfo.label}</span>
-                    </div>
-                    <div class="order-client">👤 Клиент: ${firstItem.klient}</div>
-                    <div class="order-meta">
-                        <span>📅 Сдача: <span class="${dateColorClass}">${deliveryDisplay}</span></span>
-                        <span>📦 Позиций: ${items.length}</span>
-                        <span>📋 Номера: ${numbers}</span>
-                    </div>
-                    <div class="order-items-list">
-                        ${itemsHtml}
-                    </div>
-                    ${fileHtml}
-                    <div class="order-actions">
-                        ${actionsHtml}
-                    </div>
-                    <div class="order-date">${firstItem.kommentarii ? '💬 ' + firstItem.kommentarii : ''}</div>
-                </div>
-            `;
+            html += '<div class="order-card" data-id="' + orderId + '">' +
+                '<div class="order-header">' +
+                    '<span class="order-number">Заказ #' + firstItem.orderNumber + '</span>' +
+                    '<span class="order-status ' + statusInfo.class + '">' + statusInfo.label + '</span>' +
+                '</div>' +
+                '<div class="order-client">👤 Клиент: ' + firstItem.klient + '</div>' +
+                '<div class="order-meta">' +
+                    '<span>📅 Сдача: <span class="' + dateColorClass + '">' + deliveryDisplay + '</span></span>' +
+                    '<span>📦 Позиций: ' + items.length + '</span>' +
+                    '<span>📋 Номера: ' + numbers + '</span>' +
+                '</div>' +
+                '<div class="order-items-list">' + itemsHtml + '</div>' +
+                fileHtml +
+                '<div class="order-actions">' + actionsHtml + '</div>' +
+                '<div class="order-date">' + (firstItem.kommentarii ? '💬 ' + firstItem.kommentarii : '') + '</div>' +
+            '</div>';
         }
 
         html += '</div>';
@@ -429,7 +421,8 @@ async function loadTab(tab) {
 
         // Обработчики для кнопок смены статуса
         const statusBtns = container.querySelectorAll('.btn-status');
-        statusBtns.forEach(function(btn) {
+        for (let i = 0; i < statusBtns.length; i++) {
+            const btn = statusBtns[i];
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 const orderId = this.dataset.orderId;
@@ -438,11 +431,12 @@ async function loadTab(tab) {
                     changeOrderStatus(orderId, newStatus);
                 }
             });
-        });
+        }
 
         // Раскрытие списка позиций при клике на карточку
         const cards = container.querySelectorAll('.order-card');
-        cards.forEach(function(card) {
+        for (let i = 0; i < cards.length; i++) {
+            const card = cards[i];
             card.addEventListener('click', function(e) {
                 if (e.target.closest('.btn-status') || e.target.closest('.file-link')) return;
                 const itemsList = this.querySelector('.order-items-list');
@@ -450,7 +444,7 @@ async function loadTab(tab) {
                     itemsList.classList.toggle('show');
                 }
             });
-        });
+        }
 
     } catch (err) {
         console.error('Ошибка загрузки позиций (' + tab + '):', err);
