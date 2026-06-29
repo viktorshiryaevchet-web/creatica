@@ -193,7 +193,6 @@ async function loadTab(tab) {
             return;
         }
 
-        // Собираем все позиции с данными заказа
         let allItems = [];
 
         for (let oi = 0; oi < orders.items.length; oi++) {
@@ -209,18 +208,6 @@ async function loadTab(tab) {
                 return !name.includes('подушк');
             });
 
-            // Подсчитываем общее количество единиц в заказе
-            let totalUnitsInOrder = 0;
-            for (let fi = 0; fi < filteredItems.length; fi++) {
-                const item = filteredItems[fi];
-                const units = await pb.collection('item_units').getList(1, 100, {
-                    filter: 'order_item_id = "' + item.id + '"',
-                    sort: 'number',
-                });
-                totalUnitsInOrder += units.items.length;
-            }
-
-            let positionCounter = 0;
             for (let fi = 0; fi < filteredItems.length; fi++) {
                 const item = filteredItems[fi];
                 const units = await pb.collection('item_units').getList(1, 100, {
@@ -230,21 +217,12 @@ async function loadTab(tab) {
 
                 for (let ui = 0; ui < units.items.length; ui++) {
                     const unit = units.items[ui];
-                    positionCounter++;
-                    
-                    let fullNumber;
-                    if (totalUnitsInOrder === 1) {
-                        fullNumber = String(order.nomer_partii);
-                    } else {
-                        fullNumber = order.nomer_partii + '/' + positionCounter;
-                    }
                     
                     allItems.push({
                         unitId: unit.id,
                         orderId: order.id,
                         orderNumber: order.nomer_partii,
-                        positionNumber: positionCounter,
-                        fullNumber: fullNumber,
+                        fullNumber: order.nomer_partii + '/' + (ui + 1),
                         name: item.mebel || 'Без названия',
                         fabric: item.tkan || '',
                         color: item.cvet_opor || '',
@@ -256,7 +234,7 @@ async function loadTab(tab) {
                         fileUrl: order.file ? pb.files.getURL(order, order.file) : null,
                         klient: order.klient || 'Не указан',
                         kommentarii: order.kommentarii || '',
-                        isDevelopment: order.njna_razrabotka || false,
+                        orderItemId: item.id,
                     });
                 }
             }
@@ -267,7 +245,6 @@ async function loadTab(tab) {
             return;
         }
 
-        // Фильтрация по вкладке
         let filteredItems = [];
         if (tab === 'active') {
             filteredItems = allItems.filter(function(item) {
@@ -279,14 +256,12 @@ async function loadTab(tab) {
             });
         }
 
-        // Фильтр по названию мебели
         if (state.furnitureFilter) {
             filteredItems = filteredItems.filter(function(item) {
                 return item.name === state.furnitureFilter;
             });
         }
 
-        // Поиск по номеру или клиенту
         if (state.searchQuery) {
             const lowerQuery = state.searchQuery;
             filteredItems = filteredItems.filter(function(item) {
@@ -295,7 +270,6 @@ async function loadTab(tab) {
             });
         }
 
-        // Сортировка по дате
         filteredItems.sort(function(a, b) {
             if (!a.deliveryDateRaw) return 1;
             if (!b.deliveryDateRaw) return -1;
@@ -307,7 +281,6 @@ async function loadTab(tab) {
             return;
         }
 
-        // Обновляем выпадающий список
         const uniqueNames = [...new Set(filteredItems.map(function(item) { return item.name; }).filter(Boolean))].sort();
         const select = document.getElementById('furnitureFilter');
         if (select) {
@@ -320,16 +293,6 @@ async function loadTab(tab) {
             }
         }
 
-        // Группируем по заказам
-        const orderMap = {};
-        for (let i = 0; i < filteredItems.length; i++) {
-            const item = filteredItems[i];
-            if (!orderMap[item.orderId]) {
-                orderMap[item.orderId] = [];
-            }
-            orderMap[item.orderId].push(item);
-        }
-
         const statusMap = {
             'у_конструктора': { label: '🛠 В работе', class: 'active' },
             'чертеж_готов': { label: '✅ Готово', class: 'done' },
@@ -337,109 +300,69 @@ async function loadTab(tab) {
 
         let html = '<div class="all-items-list">';
 
-        // Проходим по каждому заказу
-        const orderIds = Object.keys(orderMap);
-        for (let oi = 0; oi < orderIds.length; oi++) {
-            const orderId = orderIds[oi];
-            const items = orderMap[orderId];
-            const firstItem = items[0];
+        for (let i = 0; i < filteredItems.length; i++) {
+            const item = filteredItems[i];
+            const statusInfo = statusMap[item.status] || { label: item.status, class: '' };
             
-            // Определяем статус заказа
-            const orderStatus = items[0].status;
-            const statusInfo = statusMap[orderStatus] || { label: orderStatus, class: '' };
+            const dateColorClass = getDateColor(item.deliveryDateRaw);
+            const deliveryDisplay = item.deliveryDate || 'не указана';
             
-            // Формируем номера позиций
-            let numbers = '';
-            for (let ni = 0; ni < items.length; ni++) {
-                if (ni > 0) numbers += ', ';
-                numbers += items[ni].fullNumber;
+            let details = '';
+            if (item.fabric) details += 'Ткань: ' + item.fabric;
+            if (item.color) {
+                if (details) details += ' | ';
+                details += 'Цвет опор: ' + item.color;
             }
-            
-            // Дата сдачи
-            const deliveryDisplay = firstItem.deliveryDate || 'не указана';
-            const dateColorClass = getDateColor(firstItem.deliveryDateRaw);
-            
-            // Файл
+            if (item.finish) {
+                if (details) details += ' | ';
+                details += 'Отделка: ' + item.finish;
+            }
+
             let fileHtml = '';
-            if (firstItem.hasFile && firstItem.fileUrl) {
-                fileHtml = '<div class="order-file">📎 <a href="' + firstItem.fileUrl + '" target="_blank" class="file-link">Скачать файл</a></div>';
+            if (item.hasFile && item.fileUrl) {
+                fileHtml = '<div class="order-file">📎 <a href="' + item.fileUrl + '" target="_blank" class="file-link">Скачать файл</a></div>';
             } else {
                 fileHtml = '<div class="order-file" style="background: #f8f9fa; color: #999;">📎 Файл не приложен</div>';
             }
-            
-            // Кнопки действий
+
             let actionsHtml = '';
-            if (orderStatus === 'у_конструктора') {
-                actionsHtml = '<button class="btn btn-success btn-sm btn-status" data-order-id="' + orderId + '" data-status="чертеж_готов">✅ Чертеж готов</button>';
-            } else if (orderStatus === 'чертеж_готов') {
-                actionsHtml = '<button class="btn btn-danger btn-sm btn-status" data-order-id="' + orderId + '" data-status="у_конструктора">↩️ Вернуть в работу</button>';
+            if (item.status === 'у_конструктора') {
+                actionsHtml = '<button class="btn btn-success btn-sm btn-status" data-unit-id="' + item.unitId + '" data-order-item-id="' + item.orderItemId + '" data-order-id="' + item.orderId + '" data-status="чертеж_готов">✅ Чертеж готов</button>';
+            } else if (item.status === 'чертеж_готов') {
+                actionsHtml = '<button class="btn btn-danger btn-sm btn-status" data-unit-id="' + item.unitId + '" data-order-item-id="' + item.orderItemId + '" data-order-id="' + item.orderId + '" data-status="у_конструктора">↩️ Вернуть в работу</button>';
             }
 
-            // Список позиций внутри заказа
-            let itemsHtml = '';
-            for (let ii = 0; ii < items.length; ii++) {
-                const item = items[ii];
-                let details = '';
-                if (item.fabric) details += 'Ткань: ' + item.fabric;
-                if (item.color) {
-                    if (details) details += ' | ';
-                    details += 'Цвет опор: ' + item.color;
-                }
-                if (item.finish) {
-                    if (details) details += ' | ';
-                    details += 'Отделка: ' + item.finish;
-                }
-                itemsHtml += '<div class="item-row-inner">' +
-                    '<span class="item-number-inner">' + item.fullNumber + '</span>' +
-                    '<span class="item-name-inner">' + item.name + '</span>' +
-                    '<span class="item-detail-inner">' + (details || 'Нет деталей') + '</span>' +
-                '</div>';
-            }
-
-            html += '<div class="order-card" data-id="' + orderId + '">' +
+            html += '<div class="order-card" data-id="' + item.orderId + '">' +
                 '<div class="order-header">' +
-                    '<span class="order-number">Заказ #' + firstItem.orderNumber + '</span>' +
+                    '<span class="order-number">' + item.fullNumber + '</span>' +
                     '<span class="order-status ' + statusInfo.class + '">' + statusInfo.label + '</span>' +
                 '</div>' +
-                '<div class="order-client">👤 Клиент: ' + firstItem.klient + '</div>' +
+                '<div class="order-client">👤 Клиент: ' + item.klient + '</div>' +
                 '<div class="order-meta">' +
                     '<span>📅 Сдача: <span class="' + dateColorClass + '">' + deliveryDisplay + '</span></span>' +
-                    '<span>📦 Позиций: ' + items.length + '</span>' +
-                    '<span>📋 Номера: ' + numbers + '</span>' +
+                    '<span>📦 ' + item.name + '</span>' +
                 '</div>' +
-                '<div class="order-items-list">' + itemsHtml + '</div>' +
+                '<div class="order-details">' + (details || 'Нет деталей') + '</div>' +
                 fileHtml +
                 '<div class="order-actions">' + actionsHtml + '</div>' +
-                '<div class="order-date">' + (firstItem.kommentarii ? '💬 ' + firstItem.kommentarii : '') + '</div>' +
+                '<div class="order-date">' + (item.kommentarii ? '💬 ' + item.kommentarii : '') + '</div>' +
             '</div>';
         }
 
         html += '</div>';
         container.innerHTML = html;
 
-        // Обработчики для кнопок смены статуса
         const statusBtns = container.querySelectorAll('.btn-status');
         for (let i = 0; i < statusBtns.length; i++) {
             const btn = statusBtns[i];
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
+                const unitId = this.dataset.unitId;
+                const orderItemId = this.dataset.orderItemId;
                 const orderId = this.dataset.orderId;
                 const newStatus = this.dataset.status;
                 if (newStatus) {
-                    changeOrderStatus(orderId, newStatus);
-                }
-            });
-        }
-
-        // Раскрытие списка позиций при клике на карточку
-        const cards = container.querySelectorAll('.order-card');
-        for (let i = 0; i < cards.length; i++) {
-            const card = cards[i];
-            card.addEventListener('click', function(e) {
-                if (e.target.closest('.btn-status') || e.target.closest('.file-link')) return;
-                const itemsList = this.querySelector('.order-items-list');
-                if (itemsList) {
-                    itemsList.classList.toggle('show');
+                    changeItemStatus(unitId, orderItemId, orderId, newStatus);
                 }
             });
         }
@@ -451,23 +374,57 @@ async function loadTab(tab) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 📌 СМЕНА СТАТУСА ЗАКАЗА
+// 📌 СМЕНА СТАТУСА У КОНКРЕТНОЙ ЕДИНИЦЫ
 // ═══════════════════════════════════════════════════════════════════
 
-async function changeOrderStatus(orderId, newStatus) {
-    if (!newStatus || !orderId) {
+async function changeItemStatus(unitId, orderItemId, orderId, newStatus) {
+    if (!newStatus || !unitId) {
         showMessage('❌ Ошибка: не указан статус', 'error');
         return;
     }
 
     try {
-        console.log('🔄 Меняем статус заказа ' + orderId + ' на "' + newStatus + '"');
+        console.log('🔄 Меняем статус единицы ' + unitId + ' на "' + newStatus + '"');
         
-        await pb.collection('orders').update(orderId, {
-            stats: newStatus,
+        // 1. Меняем статус у конкретной единицы
+        await pb.collection('item_units').update(unitId, {
+            status: newStatus,
         });
         
-        showMessage('✅ Статус заказа изменён на "' + newStatus + '"', 'success');
+        // 2. Если статус стал "чертеж_готов" — создаём новую единицу для столярного цеха
+        if (newStatus === 'чертеж_готов') {
+            // Создаём новую единицу в столярном цехе со статусом "новый"
+            await pb.collection('item_units').create({
+                order_item_id: orderItemId,
+                status: 'новый',
+                number: 1,
+            });
+            console.log('✅ Создана новая единица для столярного цеха');
+        }
+        
+        // 3. Проверяем, все ли единицы в этом order_item имеют статус "чертеж_готов"
+        const allUnits = await pb.collection('item_units').getList(1, 100, {
+            filter: 'order_item_id = "' + orderItemId + '"',
+        });
+        
+        const allReady = allUnits.items.every(function(unit) {
+            return unit.status === 'чертеж_готов';
+        });
+        
+        // 4. Если все единицы готовы, обновляем статус заказа
+        if (allReady && allUnits.items.length > 0) {
+            await pb.collection('orders').update(orderId, {
+                stats: 'чертеж_готов',
+            });
+            console.log('✅ Статус заказа ' + orderId + ' обновлён на "чертеж_готов"');
+        } else {
+            // Если есть единицы в работе, статус заказа "у_конструктора"
+            await pb.collection('orders').update(orderId, {
+                stats: 'у_конструктора',
+            });
+        }
+        
+        showMessage('✅ Статус позиции изменён на "' + newStatus + '"', 'success');
         
         const activeTab = document.querySelector('.tab-btn.active');
         if (activeTab) {
