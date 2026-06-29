@@ -277,8 +277,6 @@ async function loadTab(tab) {
             filteredItems = allItems.filter(function(item) {
                 return item.status === 'чертеж_готов';
             });
-        } else if (tab === 'all') {
-            filteredItems = allItems;
         }
 
         // Фильтр по названию мебели
