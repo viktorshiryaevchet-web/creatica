@@ -246,6 +246,8 @@ async function loadTab(tab) {
                         status: unit.status || 'новый',
                         hasFile: order.file ? true : false,
                         fileUrl: order.file ? pb.files.getURL(order, order.file) : null,
+                        klient: order.klient || 'Не указан',
+                        kommentarii: order.kommentarii || '',
                         isDevelopment: order.njna_razrabotka || false,
                     });
                 }
@@ -321,47 +323,39 @@ async function loadTab(tab) {
             { value: 'чертеж_готов', label: '✅ Чертеж готов' },
         ];
 
-        let html = '<div class="all-items-list">' +
-            '<div class="list-header">' +
-                '<span class="item-number">№</span>' +
-                '<span class="item-name">Наименование</span>' +
-                '<span class="item-detail">Детали | 📅 Сдача | Статус</span>' +
-            '</div>';
+        // Собираем уникальные orderId для группировки
+        const orderIds = [...new Set(filteredItems.map(function(item) { return item.orderId; }))];
+        
+        // Группируем по заказам
+        let groupedItems = {};
+        orderIds.forEach(function(id) {
+            groupedItems[id] = filteredItems.filter(function(item) { return item.orderId === id; });
+        });
 
-        filteredItems.forEach(function(item) {
-            const statusInfo = statusMap[item.status] || { label: item.status, class: '' };
-            let details = '';
-            if (item.fabric) details += 'Ткань: ' + item.fabric;
-            if (item.color) {
-                if (details) details += ' | ';
-                details += 'Цвет опор: ' + item.color;
-            }
-            if (item.finish) {
-                if (details) details += ' | ';
-                details += 'Отделка: ' + item.finish;
-            }
+        let html = '<div class="all-items-list">';
 
-            const dateColorClass = getDateColor(item.deliveryDateRaw);
-            const deliveryDisplay = item.deliveryDate || 'не указана';
-
-            // Кнопки действий
-            let actionsHtml = '';
-            if (item.status === 'у_конструктора') {
-                actionsHtml = `
-                    <button class="btn btn-success btn-sm btn-status" data-order-id="${item.orderId}" data-status="чертеж_готов">✅ Чертеж готов</button>
-                `;
-            } else if (item.status === 'чертеж_готов') {
-                actionsHtml = `
-                    <button class="btn btn-danger btn-sm btn-status" data-order-id="${item.orderId}" data-status="у_конструктора">↩️ Вернуть в работу</button>
-                `;
-            }
-
+        // Для каждого заказа создаём карточку
+        for (const orderId in groupedItems) {
+            const items = groupedItems[orderId];
+            const firstItem = items[0];
+            
+            // Определяем статус заказа (все позиции в заказе должны иметь одинаковый статус)
+            const orderStatus = items[0].status;
+            const statusInfo = statusMap[orderStatus] || { label: orderStatus, class: '' };
+            
+            // Формируем номера позиций для отображения в заголовке
+            const numbers = items.map(function(item) { return item.fullNumber; }).join(', ');
+            
+            // Дата сдачи (берём из первой позиции)
+            const deliveryDisplay = firstItem.deliveryDate || 'не указана';
+            const dateColorClass = getDateColor(firstItem.deliveryDateRaw);
+            
             // Файл
             let fileHtml = '';
-            if (item.hasFile && item.fileUrl) {
+            if (firstItem.hasFile && firstItem.fileUrl) {
                 fileHtml = `
                     <div class="order-file">
-                        📎 <a href="${item.fileUrl}" target="_blank" class="file-link">Скачать файл</a>
+                        📎 <a href="${firstItem.fileUrl}" target="_blank" class="file-link">Скачать файл</a>
                     </div>
                 `;
             } else {
@@ -371,26 +365,64 @@ async function loadTab(tab) {
                     </div>
                 `;
             }
+            
+            // Кнопки действий
+            let actionsHtml = '';
+            if (orderStatus === 'у_конструктора') {
+                actionsHtml = `
+                    <button class="btn btn-success btn-sm btn-status" data-order-id="${orderId}" data-status="чертеж_готов">✅ Чертеж готов</button>
+                `;
+            } else if (orderStatus === 'чертеж_готов') {
+                actionsHtml = `
+                    <button class="btn btn-danger btn-sm btn-status" data-order-id="${orderId}" data-status="у_конструктора">↩️ Вернуть в работу</button>
+                `;
+            }
+
+            // Список позиций внутри заказа
+            let itemsHtml = '';
+            items.forEach(function(item) {
+                let details = '';
+                if (item.fabric) details += 'Ткань: ' + item.fabric;
+                if (item.color) {
+                    if (details) details += ' | ';
+                    details += 'Цвет опор: ' + item.color;
+                }
+                if (item.finish) {
+                    if (details) details += ' | ';
+                    details += 'Отделка: ' + item.finish;
+                }
+                itemsHtml += `
+                    <div class="item-row-inner">
+                        <span class="item-number-inner">${item.fullNumber}</span>
+                        <span class="item-name-inner">${item.name}</span>
+                        <span class="item-detail-inner">${details || 'Нет деталей'}</span>
+                    </div>
+                `;
+            });
 
             html += `
-                <div class="order-card" data-id="${item.orderId}">
+                <div class="order-card" data-id="${orderId}">
                     <div class="order-header">
-                        <span class="order-number">${item.fullNumber}</span>
+                        <span class="order-number">Заказ #${firstItem.orderNumber}</span>
                         <span class="order-status ${statusInfo.class}">${statusInfo.label}</span>
                     </div>
-                    <div class="order-client">👤 Клиент: ${order.klient || 'Не указан'}</div>
+                    <div class="order-client">👤 Клиент: ${firstItem.klient}</div>
                     <div class="order-meta">
                         <span>📅 Сдача: <span class="${dateColorClass}">${deliveryDisplay}</span></span>
-                        <span>📦 Позиций: ${filteredItems.length}</span>
+                        <span>📦 Позиций: ${items.length}</span>
+                        <span>📋 Номера: ${numbers}</span>
+                    </div>
+                    <div class="order-items-list">
+                        ${itemsHtml}
                     </div>
                     ${fileHtml}
                     <div class="order-actions">
                         ${actionsHtml}
                     </div>
-                    <div class="order-date">${order.kommentarii ? '💬 ' + order.kommentarii : ''}</div>
+                    <div class="order-date">${firstItem.kommentarii ? '💬 ' + firstItem.kommentarii : ''}</div>
                 </div>
             `;
-        });
+        }
 
         html += '</div>';
         container.innerHTML = html;
@@ -404,6 +436,18 @@ async function loadTab(tab) {
                 const newStatus = this.dataset.status;
                 if (newStatus) {
                     changeOrderStatus(orderId, newStatus);
+                }
+            });
+        });
+
+        // Раскрытие списка позиций при клике на карточку
+        const cards = container.querySelectorAll('.order-card');
+        cards.forEach(function(card) {
+            card.addEventListener('click', function(e) {
+                if (e.target.closest('.btn-status') || e.target.closest('.file-link')) return;
+                const itemsList = this.querySelector('.order-items-list');
+                if (itemsList) {
+                    itemsList.classList.toggle('show');
                 }
             });
         });
