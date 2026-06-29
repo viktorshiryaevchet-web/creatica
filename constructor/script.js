@@ -337,10 +337,11 @@ async function loadTab(tab) {
                     '<span class="order-number">' + item.fullNumber + '</span>' +
                     '<span class="order-status ' + statusInfo.class + '">' + statusInfo.label + '</span>' +
                 '</div>' +
+                // ⬇️ НАЗВАНИЕ МЕБЕЛИ ЖИРНЫМ ШРИФТОМ ПОД НОМЕРОМ ⬇️
+                '<div class="order-item-name">' + item.name + '</div>' +
                 '<div class="order-client">👤 Клиент: ' + item.klient + '</div>' +
                 '<div class="order-meta">' +
                     '<span>📅 Сдача: <span class="' + dateColorClass + '">' + deliveryDisplay + '</span></span>' +
-                    '<span>📦 ' + item.name + '</span>' +
                 '</div>' +
                 '<div class="order-details">' + (details || 'Нет деталей') + '</div>' +
                 fileHtml +
@@ -386,14 +387,11 @@ async function changeItemStatus(unitId, orderItemId, orderId, newStatus) {
     try {
         console.log('🔄 Меняем статус единицы ' + unitId + ' на "' + newStatus + '"');
         
-        // 1. Меняем статус у конкретной единицы
         await pb.collection('item_units').update(unitId, {
             status: newStatus,
         });
         
-        // 2. Если статус стал "чертеж_готов" — создаём новую единицу для столярного цеха
         if (newStatus === 'чертеж_готов') {
-            // Создаём новую единицу в столярном цехе со статусом "новый"
             await pb.collection('item_units').create({
                 order_item_id: orderItemId,
                 status: 'новый',
@@ -402,7 +400,6 @@ async function changeItemStatus(unitId, orderItemId, orderId, newStatus) {
             console.log('✅ Создана новая единица для столярного цеха');
         }
         
-        // 3. Проверяем, все ли единицы в этом order_item имеют статус "чертеж_готов"
         const allUnits = await pb.collection('item_units').getList(1, 100, {
             filter: 'order_item_id = "' + orderItemId + '"',
         });
@@ -411,14 +408,12 @@ async function changeItemStatus(unitId, orderItemId, orderId, newStatus) {
             return unit.status === 'чертеж_готов';
         });
         
-        // 4. Если все единицы готовы, обновляем статус заказа
         if (allReady && allUnits.items.length > 0) {
             await pb.collection('orders').update(orderId, {
                 stats: 'чертеж_готов',
             });
             console.log('✅ Статус заказа ' + orderId + ' обновлён на "чертеж_готов"');
         } else {
-            // Если есть единицы в работе, статус заказа "у_конструктора"
             await pb.collection('orders').update(orderId, {
                 stats: 'у_конструктора',
             });
