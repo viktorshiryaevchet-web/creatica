@@ -27,6 +27,17 @@ function getDateColor(deliveryDate) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// 📁 ФОРМИРОВАНИЕ ССЫЛКИ НА ФАЙЛ
+// ═══════════════════════════════════════════════════════════════════
+
+function getFileUrl(record, filename) {
+    if (!record || !filename) return null;
+    // Формируем ссылку на файл в PocketBase
+    // Формат: /api/files/collection_id/record_id/filename
+    return pb.baseUrl + '/api/files/' + record.collectionId + '/' + record.id + '/' + filename;
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // 🧠 СОСТОЯНИЕ
 // ═══════════════════════════════════════════════════════════════════
 
@@ -218,6 +229,12 @@ async function loadTab(tab) {
                 for (let ui = 0; ui < units.items.length; ui++) {
                     const unit = units.items[ui];
                     
+                    // Формируем ссылку на файл
+                    let fileUrl = null;
+                    if (order.file) {
+                        fileUrl = getFileUrl(order, order.file);
+                    }
+                    
                     allItems.push({
                         unitId: unit.id,
                         orderId: order.id,
@@ -231,7 +248,7 @@ async function loadTab(tab) {
                         deliveryDateRaw: order.data_sdai,
                         status: unit.status || 'новый',
                         hasFile: order.file ? true : false,
-                        fileUrl: order.file ? pb.files.getURL(order, order.file) : null,
+                        fileUrl: fileUrl,
                         klient: order.klient || 'Не указан',
                         kommentarii: order.kommentarii || '',
                         orderItemId: item.id,
@@ -337,7 +354,6 @@ async function loadTab(tab) {
                     '<span class="order-number">' + item.fullNumber + '</span>' +
                     '<span class="order-status ' + statusInfo.class + '">' + statusInfo.label + '</span>' +
                 '</div>' +
-                // ⬇️ НАЗВАНИЕ МЕБЕЛИ ЖИРНЫМ ШРИФТОМ ПОД НОМЕРОМ ⬇️
                 '<div class="order-item-name">' + item.name + '</div>' +
                 '<div class="order-client">👤 Клиент: ' + item.klient + '</div>' +
                 '<div class="order-meta">' +
