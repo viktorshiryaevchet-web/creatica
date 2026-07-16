@@ -218,6 +218,12 @@
     </div>
 
     <div class="filters">
+      <div class="grp"><label for="fDateFrom">Период с</label>
+        <input type="date" id="fDateFrom" title="Фильтр по дате готовности изделия">
+      </div>
+      <div class="grp"><label for="fDateTo">по</label>
+        <input type="date" id="fDateTo" title="Фильтр по дате готовности изделия">
+      </div>
       <div class="grp"><label for="fMonth">Месяц</label>
         <select id="fMonth"><option value="">Все</option></select>
       </div>
@@ -234,6 +240,18 @@
         <input type="text" id="fSearch" placeholder="наименование изделия…">
       </div>
       <button id="resetBtn">Сбросить фильтры</button>
+    </div>
+
+    <div class="stitch"><span>Топ по названию</span></div>
+    <div class="charts-row thirds">
+      <div class="card">
+        <h3>Самые заказываемые модели (по наименованию)</h3>
+        <ol class="top-list" id="topNamesList"></ol>
+      </div>
+      <div class="card">
+        <h3>Самые заказываемые ткани (по названию)</h3>
+        <ol class="top-list" id="topFabricList"></ol>
+      </div>
     </div>
 
     <div class="charts-row">
@@ -268,18 +286,6 @@
       <div class="card">
         <h3>Топ конкретных тканей (артикул/цвет)</h3>
         <div class="chart-holder"><canvas id="chartFabricExact"></canvas></div>
-      </div>
-    </div>
-
-    <div class="stitch"><span>Топ по названию</span></div>
-    <div class="charts-row thirds">
-      <div class="card">
-        <h3>Самые заказываемые модели (по наименованию)</h3>
-        <ol class="top-list" id="topNamesList"></ol>
-      </div>
-      <div class="card">
-        <h3>Самые заказываемые ткани (по названию)</h3>
-        <ol class="top-list" id="topFabricList"></ol>
       </div>
     </div>
 
@@ -466,12 +472,18 @@ function getFiltered(){
   const client = document.getElementById('fClient').value;
   const fabric = document.getElementById('fFabric').value;
   const search = document.getElementById('fSearch').value.trim().toLowerCase();
+  const dateFromVal = document.getElementById('fDateFrom').value;
+  const dateToVal = document.getElementById('fDateTo').value;
+  const dateFrom = dateFromVal ? new Date(dateFromVal + 'T00:00:00') : null;
+  const dateTo = dateToVal ? new Date(dateToVal + 'T23:59:59') : null;
   return RAW.filter(r =>
     (!month || r.month === month) &&
     (!furniture || r.furnitureType === furniture) &&
     (!client || r.client === client) &&
     (!fabric || r.fabricBrand === fabric) &&
-    (!search || r.name.toLowerCase().includes(search))
+    (!search || r.name.toLowerCase().includes(search)) &&
+    (!dateFrom || (r.dateReady && r.dateReady >= dateFrom)) &&
+    (!dateTo || (r.dateReady && r.dateReady <= dateTo))
   );
 }
 
@@ -657,12 +669,16 @@ function renderTable(data){
 /* ---------------- events ---------------- */
 ['fMonth','fFurniture','fClient','fFabric'].forEach(id => document.getElementById(id).addEventListener('change', renderAll));
 document.getElementById('fSearch').addEventListener('input', renderAll);
+document.getElementById('fDateFrom').addEventListener('change', renderAll);
+document.getElementById('fDateTo').addEventListener('change', renderAll);
 document.getElementById('resetBtn').addEventListener('click', () => {
   document.getElementById('fMonth').value = '';
   document.getElementById('fFurniture').value = '';
   document.getElementById('fClient').value = '';
   document.getElementById('fFabric').value = '';
   document.getElementById('fSearch').value = '';
+  document.getElementById('fDateFrom').value = '';
+  document.getElementById('fDateTo').value = '';
   renderAll();
 });
 document.getElementById('refreshBtn').addEventListener('click', loadData);
