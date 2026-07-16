@@ -219,7 +219,7 @@
 
   <header class="top">
     <div>
-      <p class="eyebrow">Производственный журнал </p>
+      <p class="eyebrow">Производственный журнал / Обивочный цех</p>
       <h1>Аналитика заказов</h1>
     </div>
     <div class="top-meta">
@@ -286,7 +286,7 @@
 
     <div class="charts-row">
       <div class="card">
-        <h3>Заказы по месяцам (дата готовности)</h3>
+        <h3>План к сдаче vs факт отгрузки, по месяцам</h3>
         <div class="chart-holder"><canvas id="chartMonths"></canvas></div>
       </div>
       <div class="card">
@@ -460,6 +460,7 @@ async function loadData(){
         dateIssued: parseRuDate(r[COL.dateIssued]),
         dateReady: parseRuDate(r[COL.dateReady]),
         dateShip: parseRuDate(r[COL.dateShip]),
+        dateOTK: parseRuDate(r[COL.dateOTK]),
         month: sanitizeMonth(r[COL.month]),
       }));
 
@@ -565,16 +566,28 @@ function baseOpts(extra={}){
 }
 
 function renderMonthsChart(data){
-  const counts = {};
-  data.forEach(r => { if(r.month) counts[r.month] = (counts[r.month]||0)+1; });
-  const labels = Object.keys(counts).sort((a,b)=>monthSortKey(a)-monthSortKey(b));
-  const values = labels.map(l=>counts[l]);
+  const planCounts = {};
+  const factCounts = {};
+  data.forEach(r => {
+    if(!r.month) return;
+    planCounts[r.month] = (planCounts[r.month]||0)+1;
+    if(r.dateOTK) factCounts[r.month] = (factCounts[r.month]||0)+1;
+  });
+  const labels = Object.keys(planCounts).sort((a,b)=>monthSortKey(a)-monthSortKey(b));
+  const planValues = labels.map(l=>planCounts[l]);
+  const factValues = labels.map(l=>factCounts[l]||0);
 
   destroyChart('months');
   charts.months = new Chart(document.getElementById('chartMonths'), {
     type:'bar',
-    data:{ labels, datasets:[{ data: values, backgroundColor:'#5a9186', borderRadius:4, maxBarThickness:34 }] },
-    options: baseOpts()
+    data:{
+      labels,
+      datasets:[
+        { label:'План (к сдаче)', data: planValues, backgroundColor:'#6c85a8', borderRadius:4, maxBarThickness:26 },
+        { label:'Факт (прошло ОТК)', data: factValues, backgroundColor:'#5a9186', borderRadius:4, maxBarThickness:26 }
+      ]
+    },
+    options: baseOpts({ plugins:{ legend:{ display:true, position:'bottom', labels:{color:'#a89a89', font:{family:'Inter', size:11}, boxWidth:12, padding:14} } } })
   });
 }
 
