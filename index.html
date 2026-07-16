@@ -196,6 +196,9 @@
       <div class="grp"><label for="fMonth">Месяц</label>
         <select id="fMonth"><option value="">Все</option></select>
       </div>
+      <div class="grp"><label for="fFurniture">Тип мебели</label>
+        <select id="fFurniture"><option value="">Все</option></select>
+      </div>
       <div class="grp"><label for="fClient">Клиент</label>
         <select id="fClient"><option value="">Все</option></select>
       </div>
@@ -228,6 +231,18 @@
       <div class="card">
         <h3>Топ тканей / поставщиков</h3>
         <div class="chart-holder"><canvas id="chartFabrics"></canvas></div>
+      </div>
+    </div>
+
+    <div class="stitch"><span>Что заказывают чаще всего</span></div>
+    <div class="charts-row thirds">
+      <div class="card">
+        <h3>Топ категорий мебели</h3>
+        <div class="chart-holder"><canvas id="chartFurniture"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Топ конкретных тканей (артикул/цвет)</h3>
+        <div class="chart-holder"><canvas id="chartFabricExact"></canvas></div>
       </div>
     </div>
 
@@ -313,6 +328,15 @@ function getFabricBrand(str){
   if(!firstWord || firstWord.length < 2 || /^(подушка|внешняя|внутряя)/i.test(firstWord)) return 'Разное';
   return firstWord;
 }
+function getFurnitureType(name){
+  if(!name) return 'Другое';
+  const words = name.trim().split(/\s+/);
+  let first = words[0] || '';
+  if(/^угловой$/i.test(first) && words[1]) first = words[1];
+  first = first.replace(/[^\wа-яё-]/gi, '');
+  if(!first) return 'Другое';
+  return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
+}
 function fmtDate(d){
   if(!d) return '—';
   return d.toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit', year:'numeric'});
@@ -350,6 +374,7 @@ async function loadData(){
       .map(r => ({
         batch: (r[COL.batch]||'').trim(),
         name: (r[COL.name]||'').trim(),
+        furnitureType: getFurnitureType(r[COL.name]),
         qty: parseFloat(r[COL.qty]) || 1,
         fabricRaw: (r[COL.fabric]||'').trim(),
         fabricBrand: getFabricBrand(r[COL.fabric]),
@@ -381,10 +406,12 @@ async function loadData(){
 /* ---------------- filters ---------------- */
 function populateFilters(){
   const months = [...new Set(RAW.map(r=>r.month).filter(Boolean))].sort((a,b)=>monthSortKey(a)-monthSortKey(b));
+  const furnitureTypes = [...new Set(RAW.map(r=>r.furnitureType))].sort((a,b)=>a.localeCompare(b,'ru'));
   const clients = [...new Set(RAW.map(r=>r.client))].sort((a,b)=>a.localeCompare(b,'ru'));
   const fabrics = [...new Set(RAW.map(r=>r.fabricBrand))].sort((a,b)=>a.localeCompare(b,'ru'));
 
   fillSelect('fMonth', months);
+  fillSelect('fFurniture', furnitureTypes);
   fillSelect('fClient', clients);
   fillSelect('fFabric', fabrics);
 }
@@ -398,11 +425,13 @@ function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<
 
 function getFiltered(){
   const month = document.getElementById('fMonth').value;
+  const furniture = document.getElementById('fFurniture').value;
   const client = document.getElementById('fClient').value;
   const fabric = document.getElementById('fFabric').value;
   const search = document.getElementById('fSearch').value.trim().toLowerCase();
   return RAW.filter(r =>
     (!month || r.month === month) &&
+    (!furniture || r.furnitureType === furniture) &&
     (!client || r.client === client) &&
     (!fabric || r.fabricBrand === fabric) &&
     (!search || r.name.toLowerCase().includes(search))
@@ -417,6 +446,8 @@ function renderAll(){
   renderStatusChart(data);
   renderClientsChart(data);
   renderFabricsChart(data);
+  renderFurnitureChart(data);
+  renderFabricExactChart(data);
   renderTable(data);
 }
 
@@ -506,6 +537,30 @@ function renderFabricsChart(data){
   });
 }
 
+function renderFurnitureChart(data){
+  const counts = {};
+  data.forEach(r => counts[r.furnitureType] = (counts[r.furnitureType]||0)+1);
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,10).reverse();
+  destroyChart('furniture');
+  charts.furniture = new Chart(document.getElementById('chartFurniture'), {
+    type:'bar',
+    data:{ labels: sorted.map(s=>s[0]), datasets:[{ data: sorted.map(s=>s[1]), backgroundColor:'#6c85a8', borderRadius:4 }] },
+    options: Object.assign(baseOpts(), { indexAxis:'y' })
+  });
+}
+
+function renderFabricExactChart(data){
+  const counts = {};
+  data.forEach(r => { if(r.fabricRaw) counts[r.fabricRaw] = (counts[r.fabricRaw]||0)+1; });
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,10).reverse();
+  destroyChart('fabricExact');
+  charts.fabricExact = new Chart(document.getElementById('chartFabricExact'), {
+    type:'bar',
+    data:{ labels: sorted.map(s=>s[0].length>28 ? s[0].slice(0,28)+'…' : s[0]), datasets:[{ data: sorted.map(s=>s[1]), backgroundColor:'#bd6142', borderRadius:4 }] },
+    options: Object.assign(baseOpts(), { indexAxis:'y' })
+  });
+}
+
 function renderTable(data){
   const sorted = [...data].sort((a,b) => (b.dateReady||0) - (a.dateReady||0)).slice(0,60);
   const body = document.getElementById('tableBody');
@@ -530,10 +585,11 @@ function renderTable(data){
 }
 
 /* ---------------- events ---------------- */
-['fMonth','fClient','fFabric'].forEach(id => document.getElementById(id).addEventListener('change', renderAll));
+['fMonth','fFurniture','fClient','fFabric'].forEach(id => document.getElementById(id).addEventListener('change', renderAll));
 document.getElementById('fSearch').addEventListener('input', renderAll);
 document.getElementById('resetBtn').addEventListener('click', () => {
   document.getElementById('fMonth').value = '';
+  document.getElementById('fFurniture').value = '';
   document.getElementById('fClient').value = '';
   document.getElementById('fFabric').value = '';
   document.getElementById('fSearch').value = '';
