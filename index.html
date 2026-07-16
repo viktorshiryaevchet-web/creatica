@@ -125,6 +125,31 @@
   .card h3{font-family:'Archivo',sans-serif;font-size:14px;margin:0 0 14px;color:var(--text-dim);font-weight:600;letter-spacing:.02em;}
   .card .chart-holder{position:relative;height:260px;}
 
+  .top-list{list-style:none;margin:0;padding:0;counter-reset:rank;}
+  .top-list li{
+    counter-increment:rank;
+    display:flex;align-items:center;gap:12px;
+    padding:9px 0;border-bottom:1px solid var(--border);
+    font-size:13px;
+  }
+  .top-list li:last-child{border-bottom:none;}
+  .top-list li::before{
+    content:counter(rank);
+    font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dimmer);
+    background:var(--surface-2);border:1px solid var(--border);border-radius:5px;
+    min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .top-list .tl-name{flex:1;color:var(--text);}
+  .top-list .tl-count{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--mustard);
+    background:rgba(209,161,63,.12);padding:2px 8px;border-radius:20px;flex-shrink:0;
+  }
+  .top-list .tl-bar{
+    position:absolute;left:0;bottom:0;height:2px;background:var(--teal);
+  }
+  .top-list li{position:relative;}
+  .top-list-empty{color:var(--text-dimmer);font-family:'IBM Plex Mono',monospace;font-size:12px;padding:10px 0;}
+
   /* ---------- table ---------- */
   table{width:100%;border-collapse:collapse;font-size:13px;}
   thead th{
@@ -243,6 +268,18 @@
       <div class="card">
         <h3>Топ конкретных тканей (артикул/цвет)</h3>
         <div class="chart-holder"><canvas id="chartFabricExact"></canvas></div>
+      </div>
+    </div>
+
+    <div class="stitch"><span>Топ по названию</span></div>
+    <div class="charts-row thirds">
+      <div class="card">
+        <h3>Самые заказываемые модели (по наименованию)</h3>
+        <ol class="top-list" id="topNamesList"></ol>
+      </div>
+      <div class="card">
+        <h3>Самые заказываемые ткани (по названию)</h3>
+        <ol class="top-list" id="topFabricList"></ol>
       </div>
     </div>
 
@@ -448,6 +485,8 @@ function renderAll(){
   renderFabricsChart(data);
   renderFurnitureChart(data);
   renderFabricExactChart(data);
+  renderTopNamesList(data);
+  renderTopFabricList(data);
   renderTable(data);
 }
 
@@ -559,6 +598,37 @@ function renderFabricExactChart(data){
     data:{ labels: sorted.map(s=>s[0].length>28 ? s[0].slice(0,28)+'…' : s[0]), datasets:[{ data: sorted.map(s=>s[1]), backgroundColor:'#bd6142', borderRadius:4 }] },
     options: Object.assign(baseOpts(), { indexAxis:'y' })
   });
+}
+
+function renderTopList(containerId, entries){
+  const el = document.getElementById(containerId);
+  if(entries.length === 0){
+    el.innerHTML = '<div class="top-list-empty">Нет данных по текущему фильтру.</div>';
+    return;
+  }
+  const max = entries[0][1];
+  el.innerHTML = entries.map(([label, count]) => {
+    const pct = Math.max(6, Math.round((count / max) * 100));
+    return `<li>
+      <span class="tl-name">${escapeHtml(label)}</span>
+      <span class="tl-count">${count}</span>
+      <span class="tl-bar" style="width:${pct}%"></span>
+    </li>`;
+  }).join('');
+}
+
+function renderTopNamesList(data){
+  const counts = {};
+  data.forEach(r => { if(r.name) counts[r.name] = (counts[r.name]||0)+1; });
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  renderTopList('topNamesList', sorted);
+}
+
+function renderTopFabricList(data){
+  const counts = {};
+  data.forEach(r => { if(r.fabricRaw) counts[r.fabricRaw] = (counts[r.fabricRaw]||0)+1; });
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  renderTopList('topFabricList', sorted);
 }
 
 function renderTable(data){
