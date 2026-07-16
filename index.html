@@ -11,8 +11,8 @@
 <style>
   :root{
     --bg: #1c1916;
-    --surface: #252220;
-    --surface-2: #2d2925;
+    --surface: #29251f;
+    --surface-2: #322d26;
     --border: #3c352e;
     --text: #ede5d8;
     --text-dim: #a89a89;
@@ -141,11 +141,12 @@
   }
 
   /* ---------- charts grid ---------- */
-  .charts-row{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;}
-  .charts-row.thirds{grid-template-columns:1fr 1fr;}
+  .charts-row{display:grid;grid-template-columns:1.4fr 1fr;gap:22px;}
+  .charts-row.thirds{grid-template-columns:1fr 1fr;gap:22px;}
   .card{
-    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    background:var(--surface);border:1px solid rgba(255,255,255,.09);border-radius:var(--radius);
     padding:18px;
+    box-shadow:0 1px 0 rgba(0,0,0,.5), 0 6px 18px rgba(0,0,0,.28);
   }
   .card h3{font-family:'Archivo',sans-serif;font-size:14px;margin:0 0 14px;color:var(--text-dim);font-weight:600;letter-spacing:.02em;}
   .card .chart-holder{position:relative;height:260px;}
