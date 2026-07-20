@@ -200,6 +200,19 @@
   .table-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:6px 4px;}
   .table-note{font-size:11px;color:var(--text-dimmer);margin-top:8px;font-family:'IBM Plex Mono',monospace;}
 
+  .pagination{
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;
+    margin-top:10px;
+  }
+  .page-controls{display:flex;align-items:center;gap:10px;}
+  .page-controls button{
+    background:var(--surface-2);border:1px solid var(--border);color:var(--text);
+    font-family:'IBM Plex Mono',monospace;font-size:12px;padding:6px 12px;border-radius:6px;cursor:pointer;
+  }
+  .page-controls button:hover:not(:disabled){border-color:var(--teal);color:var(--teal);}
+  .page-controls button:disabled{opacity:.35;cursor:default;}
+  #pageIndicator{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-dim);min-width:64px;text-align:center;}
+
   footer{
     margin-top:50px;padding-top:20px;border-top:1px dashed var(--border);
     font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-dimmer);
@@ -219,7 +232,7 @@
 
   <header class="top">
     <div>
-      <p class="eyebrow">Производственный журнал </p>
+      <p class="eyebrow">Производственный журнал / Обивочный цех</p>
       <h1>Аналитика заказов</h1>
     </div>
     <div class="top-meta">
@@ -331,7 +344,14 @@
         <tbody id="tableBody"></tbody>
       </table>
     </div>
-    <p class="table-note" id="tableNote"></p>
+    <div class="pagination">
+      <span class="table-note" id="tableNote"></span>
+      <div class="page-controls">
+        <button id="pagePrev" aria-label="Предыдущая страница">‹ назад</button>
+        <span id="pageIndicator">1 / 1</span>
+        <button id="pageNext" aria-label="Следующая страница">вперёд ›</button>
+      </div>
+    </div>
 
   </div>
 
@@ -691,10 +711,20 @@ function renderTopFabricList(data){
   renderTopList('topFabricList', sorted);
 }
 
+const PAGE_SIZE = 20;
+let currentPage = 1;
+
 function renderTable(data){
-  const sorted = [...data].sort((a,b) => (b.dateReady||0) - (a.dateReady||0)).slice(0,60);
+  const sorted = [...data].sort((a,b) => (b.dateReady||0) - (a.dateReady||0));
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  if(currentPage > totalPages) currentPage = totalPages;
+  if(currentPage < 1) currentPage = 1;
+
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageRows = sorted.slice(start, start + PAGE_SIZE);
+
   const body = document.getElementById('tableBody');
-  body.innerHTML = sorted.map(r => {
+  body.innerHTML = pageRows.map(r => {
     let statusHtml;
     if(r.dateShip) statusHtml = '<span class="badge shipped">Отгружено</span>';
     else if(r.dateReady) statusHtml = '<span class="badge ready">Готово</span>';
@@ -710,15 +740,21 @@ function renderTable(data){
       <td>${statusHtml}</td>
     </tr>`;
   }).join('');
+
+  const shownFrom = sorted.length ? start + 1 : 0;
+  const shownTo = Math.min(start + PAGE_SIZE, sorted.length);
   document.getElementById('tableNote').textContent =
-    `Показано ${sorted.length} из ${data.length} позиций (по фильтру), отсортировано по дате готовности.`;
+    `Показано ${shownFrom}–${shownTo} из ${sorted.length} позиций, отсортировано по дате готовности.`;
+  document.getElementById('pageIndicator').textContent = `${currentPage} / ${totalPages}`;
+  document.getElementById('pagePrev').disabled = currentPage <= 1;
+  document.getElementById('pageNext').disabled = currentPage >= totalPages;
 }
 
 /* ---------------- events ---------------- */
-['fMonth','fFurniture','fClient','fFabric'].forEach(id => document.getElementById(id).addEventListener('change', renderAll));
-document.getElementById('fSearch').addEventListener('input', renderAll);
-document.getElementById('fDateFrom').addEventListener('change', renderAll);
-document.getElementById('fDateTo').addEventListener('change', renderAll);
+['fMonth','fFurniture','fClient','fFabric'].forEach(id => document.getElementById(id).addEventListener('change', () => { currentPage = 1; renderAll(); }));
+document.getElementById('fSearch').addEventListener('input', () => { currentPage = 1; renderAll(); });
+document.getElementById('fDateFrom').addEventListener('change', () => { currentPage = 1; renderAll(); });
+document.getElementById('fDateTo').addEventListener('change', () => { currentPage = 1; renderAll(); });
 document.querySelectorAll('input[type="date"]').forEach(inp => {
   inp.addEventListener('click', () => { if(inp.showPicker){ try{ inp.showPicker(); }catch(e){} } });
 });
@@ -730,8 +766,11 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   document.getElementById('fSearch').value = '';
   document.getElementById('fDateFrom').value = '';
   document.getElementById('fDateTo').value = '';
+  currentPage = 1;
   renderAll();
 });
+document.getElementById('pagePrev').addEventListener('click', () => { currentPage--; renderTable(getFiltered()); });
+document.getElementById('pageNext').addEventListener('click', () => { currentPage++; renderTable(getFiltered()); });
 document.getElementById('refreshBtn').addEventListener('click', loadData);
 
 loadData();
